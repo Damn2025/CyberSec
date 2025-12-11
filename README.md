@@ -495,9 +495,6 @@ All error responses follow this format:
 - `404`: Not Found (resource doesn't exist)
 - `500`: Internal Server Error (database error, server error)
 
-## 🛠️ Getting Started
-
-This app was created using [GetMocha](https://getmocha.com).
 
 ### Prerequisites
 *   Node.js installed
