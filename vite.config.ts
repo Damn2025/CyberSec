@@ -9,6 +9,10 @@ export default defineConfig({
   plugins: [...mochaPlugins(process.env as any), react(), cloudflare()],
   server: {
     allowedHosts: true,
+    hmr: {
+      // Improve HMR error handling
+      overlay: true,
+    },
   },
   build: {
     chunkSizeWarningLimit: 5000,
@@ -17,5 +21,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  // Improve error handling for fetch failures
+  optimizeDeps: {
+    exclude: [],
   },
 });

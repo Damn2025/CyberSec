@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Activity, CheckCircle, AlertCircle, Clock, Loader2, ExternalLink, Trash2 } from 'lucide-react';
+import { ArrowLeft, Activity, CheckCircle, AlertCircle, Clock, Loader2, ExternalLink, Trash2, Award, Shield } from 'lucide-react';
 import { useScan } from '@/react-app/hooks/useScans';
 import VulnerabilityCard from '@/react-app/components/VulnerabilityCard';
+import CWETop25Card from '@/react-app/components/CWETop25Card';
 import SeverityBadge from '@/react-app/components/SeverityBadge';
 import ExportReportButton from '@/react-app/components/ExportReportButton';
 import { formatDistanceToNow } from 'date-fns';
@@ -70,6 +71,20 @@ export default function ScanDetails() {
     info: scan.severity_info,
   };
 
+  // Separate CWE Top 25 vulnerabilities from standard vulnerabilities
+  const cweTop25Vulns = vulnerabilities.filter(v => 
+    v.category?.includes('CWE Top 25') || v.title.includes('CWE Top 25')
+  );
+  const standardVulns = vulnerabilities.filter(v => 
+    !v.category?.includes('CWE Top 25') && !v.title.includes('CWE Top 25')
+  );
+
+  // Extract rank for sorting CWE Top 25 vulnerabilities
+  const extractRank = (title: string): number => {
+    const match = title.match(/CWE Top 25 #(\d+)/);
+    return match ? parseInt(match[1], 10) : 999;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       {/* Header */}
@@ -122,7 +137,7 @@ export default function ScanDetails() {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700">
+            <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-black/50 border border-red-900/30">
               <StatusIcon className={`w-5 h-5 ${config.color} ${scan.status === 'running' ? 'animate-spin' : ''}`} />
               <span className={`text-sm font-medium ${config.color} capitalize`}>{scan.status}</span>
             </div>
@@ -133,38 +148,104 @@ export default function ScanDetails() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Summary Stats */}
         {scan.status === 'completed' && (
-          <div className="mb-8 p-6 rounded-xl border border-gray-800 bg-gradient-to-br from-gray-900 to-gray-950">
-            <h2 className="text-lg font-semibold text-white mb-4">Scan Summary</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-1">{totalVulnerabilities}</div>
-                <div className="text-sm text-gray-400">Total Issues</div>
-              </div>
-              {Object.entries(severityCounts).map(([severity, count]) => (
-                <div key={severity} className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">{count}</div>
-                  <SeverityBadge severity={severity} />
+          <div className="mb-8 space-y-4">
+            <div className="p-6 rounded-xl border border-red-900/30 bg-black/50">
+              <h2 className="text-lg font-semibold text-white mb-4">Scan Summary</h2>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-white mb-1">{totalVulnerabilities}</div>
+                  <div className="text-sm text-gray-400">Total Issues</div>
                 </div>
-              ))}
+                {/* {cweTop25Vulns.length > 0 && (
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-purple-400 mb-1">{cweTop25Vulns.length}</div>
+                    <div className="text-sm text-gray-400 flex items-center justify-center gap-1">
+                      <Award className="w-3 h-3" />
+                      CWE Top 25
+                    </div>
+                  </div>
+                )} */}
+                {Object.entries(severityCounts).map(([severity, count]) => (
+                  <div key={severity} className="text-center">
+                    <div className="text-3xl font-bold text-white mb-1">{count}</div>
+                    <SeverityBadge severity={severity} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {cweTop25Vulns.length > 0 && (
+              <div className="p-4 rounded-xl border border-red-500/20 bg-gradient-to-br from-red-500/5 to-red-900/5">
+                <div className="flex items-center gap-2 text-red-400">
+                  <Award className="w-5 h-5" />
+                  <span className="text-sm font-semibold">
+                    {cweTop25Vulns.length} CWE Top 25 {cweTop25Vulns.length === 1 ? 'vulnerability' : 'vulnerabilities'} detected
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400 mt-1 ml-7">
+                  These are from the 2024 CWE Top 25 Most Dangerous Software Weaknesses list
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CWE Top 25 Vulnerabilities Section */}
+        {scan.status === 'completed' && cweTop25Vulns.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-red-500/10 to-red-900/10 border border-red-500/20">
+                <Award className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">CWE Top 25 Vulnerabilities</h2>
+                <p className="text-sm text-gray-400">Most dangerous software weaknesses (2024)</p>
+              </div>
+              <span className="ml-auto px-3 py-1 rounded-full text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                {cweTop25Vulns.length} detected
+              </span>
+            </div>
+            
+            <div className="space-y-4">
+              {cweTop25Vulns
+                .sort((a, b) => {
+                  // Sort by rank (lower rank = higher priority)
+                  const aRank = extractRank(a.title);
+                  const bRank = extractRank(b.title);
+                  return aRank - bRank;
+                })
+                .map((vuln) => (
+                  <CWETop25Card key={vuln.id} vulnerability={vuln} />
+                ))}
             </div>
           </div>
         )}
 
-        {/* Vulnerabilities List */}
+        {/* OSWAP TOP_25 Vulnerabilities List */}
         <div>
-          <h2 className="text-2xl font-bold text-white mb-6">
-            {scan.status === 'running' ? 'Scanning...' : 'Vulnerabilities Found'}
-          </h2>
-
-          {scan.status === 'running' ? (
-            <div className="flex flex-col items-center justify-center py-20">
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 mb-6">
-                <Activity className="w-16 h-16 text-blue-400 mx-auto animate-pulse" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-red-500/10 to-red-900/10 border border-red-500/20">
+                <Shield className="w-6 h-6 text-red-400" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Scan in Progress</h3>
-              <p className="text-gray-400">Analyzing {scan.target_url} for security vulnerabilities...</p>
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  {scan.status === 'running' ? 'Scanning...' : 'Standard Security Vulnerabilities'}
+                </h2>
+                {scan.status === 'completed' && standardVulns.length > 0 && (
+                  <p className="text-sm text-gray-400">
+                    {standardVulns.length} {standardVulns.length === 1 ? 'vulnerability' : 'vulnerabilities'} found
+                  </p>
+                )}
+              </div>
             </div>
-          ) : vulnerabilities.length === 0 ? (
+            {scan.status === 'completed' && vulnerabilities.length > 0 && (
+               <span className="ml-auto px-3 py-1 rounded-full text-sm font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                {standardVulns.length} detected
+              </span>
+            )}
+          </div>
+          {standardVulns.length === 0 && cweTop25Vulns.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="p-6 rounded-2xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/20 mb-6">
                 <CheckCircle className="w-16 h-16 text-green-400 mx-auto" />
@@ -172,11 +253,35 @@ export default function ScanDetails() {
               <h3 className="text-xl font-semibold text-white mb-2">No Vulnerabilities Found</h3>
               <p className="text-gray-400">Great news! This scan didn't detect any security issues.</p>
             </div>
+          ) : standardVulns.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-red-500/10 to-red-900/10 border border-red-500/20 mb-4">
+                <Shield className="w-12 h-12 text-red-400 mx-auto" />
+              </div>
+              <h3 className="text-lg font-semibold text-white mb-2">No Standard Vulnerabilities</h3>
+              <p className="text-gray-400 text-sm">All detected vulnerabilities are from CWE Top 25 list above.</p>
+            </div>
           ) : (
             <div className="space-y-4">
-              {vulnerabilities.map((vuln) => (
-                <VulnerabilityCard key={vuln.id} vulnerability={vuln} />
-              ))}
+              {standardVulns
+                .sort((a, b) => {
+                  // Sort by severity: critical > high > medium > low > info
+                  const severityOrder: Record<string, number> = {
+                    critical: 5,
+                    high: 4,
+                    medium: 3,
+                    low: 2,
+                    info: 1,
+                  };
+                  const aOrder = severityOrder[a.severity] || 0;
+                  const bOrder = severityOrder[b.severity] || 0;
+                  if (bOrder !== aOrder) return bOrder - aOrder;
+                  // If same severity, sort by CVSS score (higher first)
+                  return (b.cvss_score || 0) - (a.cvss_score || 0);
+                })
+                .map((vuln) => (
+                  <VulnerabilityCard key={vuln.id} vulnerability={vuln} />
+                ))}
             </div>
           )}
         </div>

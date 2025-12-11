@@ -14,6 +14,7 @@ interface VulnerabilityResult {
   evidence?: string;
 }
 
+
 export class SecurityScanner {
   private targetUrl: string;
   private scanType: string;
@@ -125,7 +126,7 @@ export class SecurityScanner {
   }
 
   private checkHeaders(headers: Headers): void {
-    const securityHeaders = {
+      const securityHeaders = {
         "strict-transport-security": {
           title: "Missing Strict-Transport-Security Header",
           severity: "high" as const,
@@ -197,7 +198,7 @@ export class SecurityScanner {
             evidence: `Header '${header}' not found in HTTP response`,
           });
         }
-      }
+    }
   }
 
   private async checkSSLTLS(): Promise<void> {
@@ -914,6 +915,535 @@ export class SecurityScanner {
       }
     } catch (error) {
       // Ignore
+    }
+  }
+}
+
+// CWE Top 25 Scanner
+interface CWETop25Config {
+  targetUrl: string;
+}
+
+interface CWETop25Vulnerability {
+  rank: number;
+  cwe_id: string;
+  name: string;
+  score: number;
+  platforms: string[];
+  severity: string;
+  description: string;
+  impact: string;
+  detection_logic: {
+    static: string;
+    dynamic: string;
+  };
+  mitigation: string;
+}
+
+interface CWETop25Result {
+  rank: number;
+  cwe_id: string;
+  name: string;
+  score: number;
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  description: string;
+  impact: string;
+  detected: boolean;
+  evidence?: string;
+  recommendation: string;
+  platforms: string[];
+}
+
+export class CWETop25Scanner {
+  private targetUrl: string;
+  private vulnerabilities: CWETop25Result[] = [];
+  private cweData: { vulnerabilities: CWETop25Vulnerability[] } | null = null;
+
+  constructor(config: CWETop25Config) {
+    this.targetUrl = config.targetUrl;
+  }
+
+  private async loadCWEData(): Promise<void> {
+    try {
+      // Import the CWE Top 25 JSON file
+      const cweModule = await import('./cwe_top_25.json');
+      this.cweData = (cweModule as any).default || cweModule;
+    } catch (error) {
+      console.error('Failed to load CWE Top 25 data:', error);
+      throw new Error('CWE Top 25 data file not found');
+    }
+  }
+
+  async scan(): Promise<CWETop25Result[]> {
+    this.vulnerabilities = [];
+    
+    try {
+      await this.loadCWEData();
+      
+      if (!this.cweData || !this.cweData.vulnerabilities) {
+        throw new Error('CWE Top 25 data is invalid');
+      }
+
+      // Scan for each CWE vulnerability
+      for (const cwe of this.cweData.vulnerabilities) {
+        const detected = await this.checkCWEVulnerability(cwe);
+        
+        const severity = this.mapSeverity(cwe.severity);
+        
+        this.vulnerabilities.push({
+          rank: cwe.rank,
+          cwe_id: cwe.cwe_id,
+          name: cwe.name,
+          score: cwe.score,
+          severity: severity,
+          description: cwe.description,
+          impact: cwe.impact,
+          detected: detected.found,
+          evidence: detected.evidence,
+          recommendation: cwe.mitigation,
+          platforms: cwe.platforms,
+        });
+      }
+    } catch (error) {
+      console.error('CWE Top 25 Scanner error:', error);
+    }
+
+    return this.vulnerabilities;
+  }
+
+  private mapSeverity(severity: string): "critical" | "high" | "medium" | "low" | "info" {
+    const lower = severity.toLowerCase();
+    if (lower.includes('critical')) return 'critical';
+    if (lower.includes('high')) return 'high';
+    if (lower.includes('medium')) return 'medium';
+    if (lower.includes('low')) return 'low';
+    return 'info';
+  }
+
+  private async checkCWEVulnerability(cwe: CWETop25Vulnerability): Promise<{ found: boolean; evidence?: string }> {
+    const cweId = cwe.cwe_id;
+
+    try {
+      // CWE-79: Cross-site Scripting (XSS)
+      if (cweId === 'CWE-79') {
+        return await this.checkXSS();
+      }
+      
+      // CWE-89: SQL Injection
+      if (cweId === 'CWE-89') {
+        return await this.checkSQLInjectionCWE();
+      }
+      
+      // CWE-78: OS Command Injection
+      if (cweId === 'CWE-78') {
+        return await this.checkOSCommandInjection();
+      }
+      
+      // CWE-20: Improper Input Validation
+      if (cweId === 'CWE-20') {
+        return await this.checkInputValidation();
+      }
+      
+      // CWE-22: Path Traversal
+      if (cweId === 'CWE-22') {
+        return await this.checkPathTraversal();
+      }
+      
+      // CWE-352: CSRF
+      if (cweId === 'CWE-352') {
+        return await this.checkCSRFCWE();
+      }
+      
+      // CWE-434: Unrestricted File Upload
+      if (cweId === 'CWE-434') {
+        return await this.checkFileUpload();
+      }
+      
+      // CWE-502: Deserialization
+      if (cweId === 'CWE-502') {
+        return await this.checkDeserialization();
+      }
+      
+      // CWE-287: Improper Authentication
+      if (cweId === 'CWE-287') {
+        return await this.checkAuthenticationCWE();
+      }
+      
+      // CWE-862: Missing Authorization
+      if (cweId === 'CWE-862') {
+        return await this.checkMissingAuthorization();
+      }
+      
+      // CWE-306: Missing Authentication
+      if (cweId === 'CWE-306') {
+        return await this.checkMissingAuthentication();
+      }
+      
+      // CWE-77: Command Injection
+      if (cweId === 'CWE-77') {
+        return await this.checkCommandInjection();
+      }
+      
+      // CWE-918: SSRF
+      if (cweId === 'CWE-918') {
+        return await this.checkSSRF();
+      }
+      
+      // CWE-94: Code Injection
+      if (cweId === 'CWE-94') {
+        return await this.checkCodeInjection();
+      }
+      
+      // CWE-200: Information Exposure
+      if (cweId === 'CWE-200') {
+        return await this.checkInformationExposure();
+      }
+      
+      // CWE-319: Cleartext Transmission
+      if (cweId === 'CWE-319') {
+        return await this.checkCleartextTransmission();
+      }
+      
+      // CWE-400: Resource Exhaustion
+      if (cweId === 'CWE-400') {
+        return await this.checkResourceExhaustion();
+      }
+      
+      // For other CWEs that require static analysis or are not web-testable
+      return { found: false };
+    } catch (error) {
+      return { found: false };
+    }
+  }
+
+  private async checkXSS(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const xssPayloads = [
+        '<script>alert(1)</script>',
+        '<img src=x onerror=alert(1)>',
+        '<svg onload=alert(1)>',
+        'javascript:alert(1)',
+      ];
+
+      const testUrl = new URL(this.targetUrl);
+      for (const payload of xssPayloads) {
+        testUrl.searchParams.set('test', payload);
+        const response = await fetch(testUrl.toString());
+        const text = await response.text();
+        
+        if (text.includes(payload) && !text.includes('&lt;script&gt;')) {
+          return { found: true, evidence: `XSS payload reflected without encoding: ${payload}` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkSQLInjectionCWE(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const sqlPayloads = [
+        "' OR '1'='1",
+        "' OR '1'='1' --",
+        "1' UNION SELECT NULL--",
+        "admin'--",
+      ];
+
+      const testUrl = new URL(this.targetUrl);
+      for (const payload of sqlPayloads) {
+        testUrl.searchParams.set('id', payload);
+        const response = await fetch(testUrl.toString());
+        const text = await response.text();
+        
+        if (text.includes('SQL syntax') || text.includes('mysql_fetch') || 
+            text.includes('PostgreSQL') || text.includes('ORA-') ||
+            text.includes('Microsoft OLE DB')) {
+          return { found: true, evidence: `SQL error detected with payload: ${payload}` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkOSCommandInjection(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const cmdPayloads = ['; sleep 5', '| sleep 5', '& sleep 5', '`sleep 5`'];
+      const startTime = Date.now();
+
+      const testUrl = new URL(this.targetUrl);
+      for (const payload of cmdPayloads) {
+        testUrl.searchParams.set('cmd', payload);
+        await fetch(testUrl.toString());
+      }
+
+      const endTime = Date.now();
+      if (endTime - startTime > 4000) {
+        return { found: true, evidence: 'Time delay detected, possible command injection' };
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkInputValidation(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const invalidInputs = [
+        { key: 'id', value: '-1' },
+        { key: 'amount', value: '999999999999' },
+        { key: 'email', value: 'notanemail' },
+      ];
+
+      const testUrl = new URL(this.targetUrl);
+      for (const input of invalidInputs) {
+        testUrl.searchParams.set(input.key, input.value);
+        const response = await fetch(testUrl.toString());
+        if (response.status === 200) {
+          return { found: true, evidence: `Invalid input accepted: ${input.key}=${input.value}` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkPathTraversal(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const pathPayloads = [
+        '../../../../etc/passwd',
+        '..\\..\\..\\windows\\win.ini',
+        '....//....//etc/passwd',
+      ];
+
+      const baseUrl = new URL(this.targetUrl);
+      for (const payload of pathPayloads) {
+        const testUrl = new URL(payload, baseUrl);
+        const response = await fetch(testUrl.toString());
+        const text = await response.text();
+        
+        if (text.includes('root:') || text.includes('[fonts]') || text.includes('bin/bash')) {
+          return { found: true, evidence: `Path traversal successful: ${payload}` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkCSRFCWE(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const response = await fetch(this.targetUrl);
+      const text = await response.text();
+      
+      // Check for CSRF token
+      const hasCSRFToken = text.includes('csrf') || text.includes('_token') || 
+                          text.includes('authenticity_token') || 
+                          response.headers.get('X-CSRF-Token');
+      
+      if (!hasCSRFToken) {
+        return { found: true, evidence: 'No CSRF protection token found' };
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkFileUpload(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      // Check if there's a file upload endpoint
+      const uploadPaths = ['/upload', '/api/upload', '/file/upload'];
+      for (const path of uploadPaths) {
+        const testUrl = new URL(this.targetUrl);
+        testUrl.pathname = path;
+        const response = await fetch(testUrl.toString(), { method: 'OPTIONS' });
+        if (response.status !== 404) {
+          return { found: true, evidence: `File upload endpoint found at ${path} without proper validation` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkDeserialization(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const response = await fetch(this.targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-java-serialized-object' },
+        body: 'test',
+      });
+      
+      if (response.status !== 415 && response.status !== 400) {
+        return { found: true, evidence: 'Application may accept serialized objects' };
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkAuthenticationCWE(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const authPaths = ['/login', '/auth', '/signin'];
+      for (const path of authPaths) {
+        const testUrl = new URL(this.targetUrl);
+        testUrl.pathname = path;
+        const response = await fetch(testUrl.toString());
+        
+        // Check for weak authentication indicators
+        if (response.status === 200) {
+          const text = await response.text();
+          if (!text.includes('captcha') && !text.includes('2fa') && !text.includes('mfa')) {
+            return { found: true, evidence: `Weak authentication at ${path} - no MFA/CAPTCHA` };
+          }
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkMissingAuthorization(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const protectedPaths = ['/admin', '/api/user', '/dashboard'];
+      for (const path of protectedPaths) {
+        const testUrl = new URL(this.targetUrl);
+        testUrl.pathname = path;
+        const response = await fetch(testUrl.toString());
+        
+        if (response.status === 200) {
+          return { found: true, evidence: `Protected path accessible without authorization: ${path}` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkMissingAuthentication(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const adminPaths = ['/admin', '/dashboard', '/api/admin'];
+      for (const path of adminPaths) {
+        const testUrl = new URL(this.targetUrl);
+        testUrl.pathname = path;
+        const response = await fetch(testUrl.toString());
+        
+        if (response.status === 200) {
+          const text = await response.text();
+          if (!text.includes('login') && !text.includes('sign in')) {
+            return { found: true, evidence: `Admin path accessible without authentication: ${path}` };
+          }
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkCommandInjection(): Promise<{ found: boolean; evidence?: string }> {
+    return await this.checkOSCommandInjection();
+  }
+
+  private async checkSSRF(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const ssrfPayloads = [
+        'http://169.254.169.254',
+        'http://localhost',
+        'http://127.0.0.1',
+        'file:///etc/passwd',
+      ];
+
+      const testUrl = new URL(this.targetUrl);
+      for (const payload of ssrfPayloads) {
+        testUrl.searchParams.set('url', payload);
+        const response = await fetch(testUrl.toString());
+        
+        if (response.status === 200) {
+          return { found: true, evidence: `SSRF vulnerability detected with payload: ${payload}` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkCodeInjection(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const codePayloads = ['eval(', 'exec(', 'Function('];
+      const response = await fetch(this.targetUrl);
+      const text = await response.text();
+      
+      for (const payload of codePayloads) {
+        if (text.includes(payload)) {
+          return { found: true, evidence: `Code injection pattern found: ${payload}` };
+        }
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkInformationExposure(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const response = await fetch(this.targetUrl);
+      const text = await response.text();
+      const headers = response.headers;
+      
+      // Check for information disclosure
+      if (text.includes('stack trace') || text.includes('Exception in') ||
+          text.includes('at ') || headers.get('server')?.includes('version') ||
+          headers.get('x-powered-by')) {
+        return { found: true, evidence: 'Sensitive information exposed in response' };
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkCleartextTransmission(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      const url = new URL(this.targetUrl);
+      if (url.protocol === 'http:') {
+        return { found: true, evidence: 'Application uses HTTP instead of HTTPS' };
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
+    }
+  }
+
+  private async checkResourceExhaustion(): Promise<{ found: boolean; evidence?: string }> {
+    try {
+      // Try rapid requests
+      const requests = 10;
+      let successCount = 0;
+      
+      for (let i = 0; i < requests; i++) {
+        const response = await fetch(this.targetUrl);
+        if (response.status === 200) {
+          successCount++;
+        }
+      }
+      
+      if (successCount === requests) {
+        return { found: true, evidence: 'No rate limiting detected - resource exhaustion possible' };
+      }
+      return { found: false };
+    } catch {
+      return { found: false };
     }
   }
 }

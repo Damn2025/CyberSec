@@ -8,10 +8,18 @@ export function useMobileScans() {
   const fetchScans = async () => {
     try {
       const response = await fetch('/api/mobile-scans');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch mobile scans: ${response.status} ${response.statusText}`);
+      }
       const data = await response.json();
       setScans(data);
     } catch (error) {
-      console.error('Failed to fetch mobile scans:', error);
+      // Only log network errors, don't crash
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.warn('Network error fetching mobile scans - API may not be available:', error);
+      } else {
+        console.error('Failed to fetch mobile scans:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -41,13 +49,22 @@ export function useMobileScan(id: string | undefined) {
           fetch(`/api/mobile-scans/${id}/vulnerabilities`),
         ]);
 
+        if (!scanRes.ok || !vulnRes.ok) {
+          throw new Error(`Failed to fetch mobile scan details: ${scanRes.status || vulnRes.status}`);
+        }
+
         const scanData = await scanRes.json();
         const vulnData = await vulnRes.json();
 
         setScan(scanData);
         setVulnerabilities(vulnData);
       } catch (error) {
-        console.error('Failed to fetch mobile scan:', error);
+        // Only log network errors, don't crash
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          console.warn('Network error fetching mobile scan details - API may not be available:', error);
+        } else {
+          console.error('Failed to fetch mobile scan:', error);
+        }
       } finally {
         setLoading(false);
       }

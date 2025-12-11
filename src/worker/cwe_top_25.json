@@ -1,0 +1,384 @@
+{
+  "metadata": {
+    "source": "CWE Top 25 Most Dangerous Software Weaknesses",
+    "version": "2024.1",
+    "generated_for": "Hybrid Vulnerability Scanner (Web & Mobile)"
+  },
+  "vulnerabilities": [
+    { 
+      "rank": 1,
+      "cwe_id": "CWE-787",
+      "name": "Out-of-bounds Write",
+      "score": 63.72,
+      "platforms": ["Mobile (Native)", "Web (WASM)", "IoT"],
+      "severity": "Critical",
+      "description": "The software writes data past the end, or before the beginning, of the intended buffer. This typically occurs in native code (C/C++) used in mobile NDK libraries or browser engines.",
+      "impact": "Memory corruption, crash, code execution.",
+      "detection_logic": {
+        "static": "Look for `strcpy`, `strcat`, `memcpy` without bounds checks in native libraries.",
+        "dynamic": "Fuzzing input fields with oversized payloads."
+      },
+      "mitigation": "Use memory-safe languages (Rust, Java, Swift) where possible. Use bounds-checking functions (e.g., `strncpy` instead of `strcpy`)."
+    },
+    {
+      "rank": 2,
+      "cwe_id": "CWE-79",
+      "name": "Cross-site Scripting (XSS)",
+      "score": 46.64,
+      "platforms": ["Web", "Mobile (Hybrid/WebView)"],
+      "severity": "High",
+      "description": "The software does not neutralize or incorrectly neutralizes user-controllable input before it is placed in output that is used as a web page.",
+      "impact": "Session hijacking, redirection to malicious sites, sensitive data theft.",
+      "detection_logic": {
+        "static": "Identify user input reflected in HTML without encoding/sanitization.",
+        "dynamic": "Inject `<script>alert(1)</script>` and SVG payloads into all inputs and check response body."
+      },
+      "mitigation": "Context-aware output encoding. Use Content Security Policy (CSP). Use frameworks like React/Angular that auto-escape."
+    },
+    {
+      "rank": 3,
+      "cwe_id": "CWE-89",
+      "name": "Improper Neutralization of Special Elements in SQL Command ('SQL Injection')",
+      "score": 42.90,
+      "platforms": ["Web", "Mobile (Local SQLite)"],
+      "severity": "Critical",
+      "description": "The software constructs all or part of an SQL command using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes that input.",
+      "impact": "Data breach, data loss, authentication bypass.",
+      "detection_logic": {
+        "static": "Search for string concatenation in SQL query strings.",
+        "dynamic": "Inject `' OR '1'='1` and monitor for database errors or true/false boolean responses."
+      },
+      "mitigation": "Use Parameterized Queries (Prepared Statements) for all database access. Use ORMs (Hibernate, Entity Framework)."
+    },
+    {
+      "rank": 4,
+      "cwe_id": "CWE-416",
+      "name": "Use After Free",
+      "score": 40.52,
+      "platforms": ["Mobile (Native)", "Desktop"],
+      "severity": "High",
+      "description": "Referencing memory after it has been freed can cause a program to crash, use unexpected values, or execute code.",
+      "impact": "Arbitrary code execution, crash.",
+      "detection_logic": {
+        "static": "Advanced control flow analysis to track pointer lifecycles.",
+        "dynamic": "Memory sanitizers (ASan) during runtime testing."
+      },
+      "mitigation": "Set pointers to NULL after freeing them. Use smart pointers (e.g., `std::shared_ptr`) in C++."
+    },
+    {
+      "rank": 5,
+      "cwe_id": "CWE-78",
+      "name": "Improper Neutralization of Special Elements in OS Command ('OS Command Injection')",
+      "score": 38.00,
+      "platforms": ["Web", "Mobile (Backend APIs)"],
+      "severity": "Critical",
+      "description": "The software constructs all or part of an OS command using externally-influenced input, but it does not neutralize special elements that could modify the intended OS command.",
+      "impact": "Full system compromise, remote code execution.",
+      "detection_logic": {
+        "static": "Identify calls to `system()`, `exec()`, `Runtime.exec()` using user input.",
+        "dynamic": "Inject time-delay commands (e.g., `; sleep 10`) and measure response time."
+      },
+      "mitigation": "Avoid calling OS commands. Use library calls instead. If necessary, use `execve()` which separates arguments from the command."
+    },
+    {
+      "rank": 6,
+      "cwe_id": "CWE-20",
+      "name": "Improper Input Validation",
+      "score": 37.00,
+      "platforms": ["Web", "Mobile", "API"],
+      "severity": "Medium/High",
+      "description": "The product receives input or data, but it does not validate or incorrectly validates that the input has the properties that are required to process the data safely and correctly.",
+      "impact": "DoS, logic errors, injection attacks.",
+      "detection_logic": {
+        "static": "Check for missing validation logic on API endpoints.",
+        "dynamic": "Send negative values, extremely long strings, and unexpected data types."
+      },
+      "mitigation": "Input validation against a strict allowlist (positive validation). Validate length, type, syntax, and business rules."
+    },
+    {
+      "rank": 7,
+      "cwe_id": "CWE-125",
+      "name": "Out-of-bounds Read",
+      "score": 35.00,
+      "platforms": ["Mobile (Native)", "IoT"],
+      "severity": "Medium",
+      "description": "The software reads data past the end, or before the beginning, of the intended buffer.",
+      "impact": "Information disclosure (sensitive memory leakage), crash.",
+      "detection_logic": {
+        "static": "Analyze array index calculations in C/C++ code.",
+        "dynamic": "Fuzzing with varied input lengths."
+      },
+      "mitigation": "Ensure index values are validated against buffer size. Use memory-safe languages."
+    },
+    {
+      "rank": 8,
+      "cwe_id": "CWE-22",
+      "name": "Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')",
+      "score": 33.00,
+      "platforms": ["Web", "Mobile (File System)"],
+      "severity": "High",
+      "description": "The software uses external input to construct a pathname that is intended to identify a file or directory that is located underneath a restricted parent directory, but the software does not properly neutralize special elements within the pathname that can cause the pathname to resolve to a location that is outside of the restricted directory.",
+      "impact": "Access to system files (`/etc/passwd`), application code disclosure.",
+      "detection_logic": {
+        "static": "Look for file operations using user input without sanitization.",
+        "dynamic": "Inject `../../../../etc/passwd` or `..\\windows\\win.ini` into URL parameters."
+      },
+      "mitigation": "Do not use user input for filenames. Use indirect object references (IDs mapped to files). Validate that the resolved path starts with the expected base directory."
+    },
+    {
+      "rank": 9,
+      "cwe_id": "CWE-352",
+      "name": "Cross-Site Request Forgery (CSRF)",
+      "score": 32.00,
+      "platforms": ["Web"],
+      "severity": "Medium",
+      "description": "The web application does not sufficiently verify whether a well-formed, valid, consistent request was intentionally provided by the user who submitted the request.",
+      "impact": "Unintentional state change (password change, fund transfer).",
+      "detection_logic": {
+        "static": "Check for missing anti-CSRF tokens in form submissions.",
+        "dynamic": "Replay a request without the CSRF token or with a modified Origin header."
+      },
+      "mitigation": "Implement Anti-CSRF tokens (Synchronizer Token Pattern). Use SameSite cookie attribute (Strict/Lax)."
+    },
+    {
+      "rank": 10,
+      "cwe_id": "CWE-434",
+      "name": "Unrestricted Upload of File with Dangerous Type",
+      "score": 30.00,
+      "platforms": ["Web", "Mobile (Profile Uploads)"],
+      "severity": "Critical",
+      "description": "The software allows the attacker to upload or transfer files of dangerous types that can be automatically processed within the product's environment.",
+      "impact": "Remote Code Execution (uploading a PHP shell), defacement.",
+      "detection_logic": {
+        "static": "Check file upload logic for extension allowlisting.",
+        "dynamic": "Attempt to upload `.php`, `.exe`, or `.html` files."
+      },
+      "mitigation": "Validate file extensions against an allowlist. Validate MIME types. Store uploaded files outside the web root. Rename files upon upload."
+    },
+    {
+      "rank": 11,
+      "cwe_id": "CWE-476",
+      "name": "NULL Pointer Dereference",
+      "score": 28.00,
+      "platforms": ["Mobile (Native)", "Desktop"],
+      "severity": "Medium",
+      "description": "A NULL pointer dereference occurs when the application dereferences a pointer that it expects to be valid, but is NULL, typically causing a crash or exit.",
+      "impact": "Denial of Service (DoS).",
+      "detection_logic": {
+        "static": "Static analysis tools (Clang Static Analyzer).",
+        "dynamic": "Fuzzing."
+      },
+      "mitigation": "Check if a pointer is NULL before dereferencing. Handle exceptions gracefully."
+    },
+    {
+      "rank": 12,
+      "cwe_id": "CWE-502",
+      "name": "Deserialization of Untrusted Data",
+      "score": 27.00,
+      "platforms": ["Web (Java/PHP/Node)", "Mobile (Intent Handling)"],
+      "severity": "Critical",
+      "description": "The application deserializes untrusted data without sufficiently verifying that the resulting data will be valid.",
+      "impact": "Remote Code Execution, DoS.",
+      "detection_logic": {
+        "static": "Look for `ObjectInputStream.readObject`, `pickle.load`, `unserialize`.",
+        "dynamic": "Inject serialized objects containing malicious payloads (e.g., Ysoserial)."
+      },
+      "mitigation": "Avoid native deserialization formats. Use JSON/XML. If necessary, sign the data or use strict type constraints during deserialization."
+    },
+    {
+      "rank": 13,
+      "cwe_id": "CWE-190",
+      "name": "Integer Overflow or Wraparound",
+      "score": 26.50,
+      "platforms": ["Mobile (Native)", "Web (Commerce Logic)"],
+      "severity": "Medium",
+      "description": "The software performs a calculation that can produce an integer overflow or wraparound, which often leads to logic errors or buffer overflows.",
+      "impact": "Business logic bypass (negative prices), buffer overflow setup.",
+      "detection_logic": {
+        "static": "Analyze arithmetic operations on user-supplied integers.",
+        "dynamic": "Send `MAX_INT`, `MAX_INT+1` values."
+      },
+      "mitigation": "Check for overflow before performing arithmetic. Use BigInteger libraries."
+    },
+    {
+      "rank": 14,
+      "cwe_id": "CWE-287",
+      "name": "Improper Authentication",
+      "score": 26.00,
+      "platforms": ["Web", "Mobile", "API"],
+      "severity": "Critical",
+      "description": "When an actor claims to have a given identity, the software does not prove or insufficiently proves that the claim is correct.",
+      "impact": "Account takeover.",
+      "detection_logic": {
+        "static": "Review login flows and token validation logic.",
+        "dynamic": "Brute force, credential stuffing, testing for session fixation."
+      },
+      "mitigation": "Multi-Factor Authentication (MFA). Strong password policies. Proper session management."
+    },
+    {
+      "rank": 15,
+      "cwe_id": "CWE-798",
+      "name": "Use of Hard-coded Credentials",
+      "score": 25.00,
+      "platforms": ["Mobile (App Binary)", "IoT", "Web Source"],
+      "severity": "High",
+      "description": "The software contains hard-coded credentials, such as a password or cryptographic key, which it uses for its own inbound authentication, outbound communication to external components, or encryption of internal data.",
+      "impact": "Unauthorized access, data decryption.",
+      "detection_logic": {
+        "static": "Scan code/binary for strings like `api_key`, `password`, `secret` using regex/entropy analysis.",
+        "dynamic": "N/A (Primarily static)."
+      },
+      "mitigation": "Store credentials in environment variables, KeyVaults, or secure storage (Android Keystore/iOS Keychain)."
+    },
+    {
+      "rank": 16,
+      "cwe_id": "CWE-862",
+      "name": "Missing Authorization",
+      "score": 24.00,
+      "platforms": ["Web", "API"],
+      "severity": "High",
+      "description": "The software does not perform an authorization check when an actor attempts to access a resource or perform an action.",
+      "impact": "IDOR (Insecure Direct Object Reference), Privilege Escalation.",
+      "detection_logic": {
+        "static": "Check API routes for missing middleware/decorators (e.g., `@login_required`).",
+        "dynamic": "Access User B's resource using User A's session token."
+      },
+      "mitigation": "Implement Role-Based Access Control (RBAC) or Attribute-Based Access Control (ABAC) on every endpoint."
+    },
+    {
+      "rank": 17,
+      "cwe_id": "CWE-276",
+      "name": "Incorrect Default Permissions",
+      "score": 23.00,
+      "platforms": ["Mobile (File Providers)", "Server Config"],
+      "severity": "Medium",
+      "description": "The software sets the permissions for a critical resource (file, directory, or database) to be broader than necessary.",
+      "impact": "Data leakage to other apps or users.",
+      "detection_logic": {
+        "static": "Check AndroidManifest.xml for `exported=true` or file creation modes (e.g., `MODE_WORLD_READABLE`).",
+        "dynamic": "Check file permissions at runtime."
+      },
+      "mitigation": "Follow the Principle of Least Privilege. Set restrictive defaults (e.g., `chmod 600`)."
+    },
+    {
+      "rank": 18,
+      "cwe_id": "CWE-306",
+      "name": "Missing Authentication for Critical Function",
+      "score": 22.00,
+      "platforms": ["Web Admin Panels", "API"],
+      "severity": "Critical",
+      "description": "The software does not perform any authentication for functionality that requires a provable user identity.",
+      "impact": "Unrestricted administrative access.",
+      "detection_logic": {
+        "static": "Review route definitions for unprotected critical paths.",
+        "dynamic": "Browse directly to `/admin` or `/dashboard` without logging in."
+      },
+      "mitigation": "Authenticate all users before allowing access to critical functions."
+    },
+    {
+      "rank": 19,
+      "cwe_id": "CWE-77",
+      "name": "Improper Neutralization of Special Elements used in a Command ('Command Injection')",
+      "score": 21.00,
+      "platforms": ["Web", "IoT"],
+      "severity": "Critical",
+      "description": "Generic command injection, similar to CWE-78 but broader in scope involving interpreters.",
+      "impact": "Code execution.",
+      "detection_logic": {
+        "static": "Identify usage of `eval()`, `exec()`.",
+        "dynamic": "Inject interpreter-specific commands."
+      },
+      "mitigation": "Avoid using user input in command strings."
+    },
+    {
+      "rank": 20,
+      "cwe_id": "CWE-918",
+      "name": "Server-Side Request Forgery (SSRF)",
+      "score": 20.00,
+      "platforms": ["Web", "Cloud Services"],
+      "severity": "High",
+      "description": "The web server creates or makes an HTTP request to an arbitrary domain/IP based on user input.",
+      "impact": "Access to internal metadata services (AWS/GCP), internal network scanning.",
+      "detection_logic": {
+        "static": "Analyze HTTP client calls using user-supplied URLs.",
+        "dynamic": "Inject `http://169.254.169.254` or `http://localhost` into URL parameters."
+      },
+      "mitigation": "Validate and sanitizing target URLs. Use a strict allowlist of domains. Disable HTTP redirections."
+    },
+    {
+      "rank": 21,
+      "cwe_id": "CWE-119",
+      "name": "Improper Restriction of Operations within the Bounds of a Memory Buffer",
+      "score": 19.00,
+      "platforms": ["Mobile (Native)", "IoT"],
+      "severity": "Critical",
+      "description": "The software performs operations on a memory buffer, but it can read from or write to a memory location that is outside of the intended boundary of the buffer.",
+      "impact": "Memory corruption.",
+      "detection_logic": {
+        "static": "Source code analysis of buffer manipulation.",
+        "dynamic": "Fuzzing."
+      },
+      "mitigation": "Use safe libraries. Enforce boundary checks."
+    },
+    {
+      "rank": 22,
+      "cwe_id": "CWE-94",
+      "name": "Improper Control of Generation of Code ('Code Injection')",
+      "score": 18.00,
+      "platforms": ["Web"],
+      "severity": "Critical",
+      "description": "The software constructs all or part of a code segment using externally-influenced input from an upstream component, but it does not neutralize or incorrectly neutralizes special elements that could modify the syntax or behavior of the intended code segment.",
+      "impact": "Arbitrary code execution.",
+      "detection_logic": {
+        "static": "Identify `eval()` usage in JS, Python, PHP.",
+        "dynamic": "Inject language-specific payloads."
+      },
+      "mitigation": "Do not use `eval()` functions. Isolate code execution environments."
+    },
+    {
+      "rank": 23,
+      "cwe_id": "CWE-200",
+      "name": "Exposure of Sensitive Information to an Unauthorized Actor",
+      "score": 17.00,
+      "platforms": ["Mobile (Logs/Cache)", "Web"],
+      "severity": "Medium",
+      "description": "The product exposes sensitive information to an actor that is not explicitly authorized to have access to that information.",
+      "impact": "Privacy violation, credential harvesting.",
+      "detection_logic": {
+        "static": "Check for logging of sensitive data (passwords, tokens). Check app cache settings.",
+        "dynamic": "Analyze HTTP responses for stack traces or server version headers."
+      },
+      "mitigation": "Classify data sensitivity. Mask sensitive data in logs. Disable verbose error messages in production."
+    },
+    {
+      "rank": 24,
+      "cwe_id": "CWE-319",
+      "name": "Cleartext Transmission of Sensitive Information",
+      "score": 16.00,
+      "platforms": ["Mobile", "Web"],
+      "severity": "High",
+      "description": "The software transmits sensitive or security-critical data in cleartext in a communication channel that can be sniffed by unauthorized actors.",
+      "impact": "Man-in-the-Middle (MitM) attacks.",
+      "detection_logic": {
+        "static": "Check for `http://` URLs in config or code. Check for `NSAppTransportSecurity` in iOS.",
+        "dynamic": "Intercept network traffic and check for unencrypted data."
+      },
+      "mitigation": "Enforce HTTPS/TLS for all communications. Use Certificate Pinning for mobile apps."
+    },
+    {
+      "rank": 25,
+      "cwe_id": "CWE-400",
+      "name": "Uncontrolled Resource Consumption",
+      "score": 15.00,
+      "platforms": ["Web", "API"],
+      "severity": "Medium",
+      "description": "The software does not properly control the allocation and maintenance of a limited resource thereby enabling an actor to influence the amount of resources consumed, eventually leading to the exhaustion of available resources.",
+      "impact": "Denial of Service (DoS).",
+      "detection_logic": {
+        "static": "Check for loops bounded by user input.",
+        "dynamic": "Send large payloads or rapid-fire requests."
+      },
+      "mitigation": "Rate limiting. Input size limits. Resource quotas."
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Scan, Vulnerability } from '@/shared/types';
 
 export function useScans() {
@@ -8,22 +8,52 @@ export function useScans() {
 
   const fetchScans = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('/api/scans');
-      if (!response.ok) throw new Error('Failed to fetch scans');
+      // Add cache-busting to ensure we get fresh data
+      const response = await fetch(`/api/scans?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch scans: ${response.status} ${response.statusText}`);
+      }
       const data = await response.json();
-      setScans(data);
+      // Force state update by creating new array reference
+      setScans(prevScans => {
+        // Check if status changed for any scan
+        const statusChanged = prevScans.some((prev, idx) => 
+          data[idx] && prev.status !== data[idx].status
+        );
+        if (statusChanged) {
+          console.log('Scan status changed detected:', data.find((s: Scan, idx: number) => 
+            prevScans[idx] && prevScans[idx].status !== s.status
+          ));
+        }
+        return [...data];
+      });
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch scans');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch scans';
+      setError(errorMessage);
+      // Only log network errors, don't throw
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        console.warn('Network error fetching scans - API may not be available:', errorMessage);
+      } else {
+        console.error('Error fetching scans:', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     fetchScans();
-    const interval = setInterval(fetchScans, 5000); // Poll every 5 seconds
+    
+    const interval = setInterval(() => {
+      fetchScans();
+    }, 2000); // Poll every 2 seconds to catch status changes quickly
+    
     return () => clearInterval(interval);
   }, []);
 
@@ -35,37 +65,73 @@ export function useScan(id: string | undefined) {
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
 
-  const fetchScan = async () => {
+  const fetchScan = useCallback(async () => {
     if (!id) return;
     
     try {
-      setLoading(true);
+      // Only set loading on initial fetch, not on subsequent polls
+      if (isInitialMount.current) {
+        setLoading(true);
+        isInitialMount.current = false;
+      }
+      
+      // Add cache-busting to ensure we get fresh data
+      const timestamp = Date.now();
       const [scanRes, vulnRes] = await Promise.all([
-        fetch(`/api/scans/${id}`),
-        fetch(`/api/scans/${id}/vulnerabilities`)
+        fetch(`/api/scans/${id}?t=${timestamp}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        }),
+        fetch(`/api/scans/${id}/vulnerabilities?t=${timestamp}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        })
       ]);
       
-      if (!scanRes.ok || !vulnRes.ok) throw new Error('Failed to fetch scan details');
+      if (!scanRes.ok || !vulnRes.ok) {
+        throw new Error(`Failed to fetch scan details: ${scanRes.status || vulnRes.status}`);
+      }
       
       const scanData = await scanRes.json();
       const vulnData = await vulnRes.json();
       
-      setScan(scanData);
-      setVulnerabilities(vulnData);
+      // Force state update by creating new object references
+      setScan(prevScan => {
+        // Check if status changed
+        if (prevScan && prevScan.status !== scanData.status) {
+          console.log(`Scan ${id} status changed from ${prevScan.status} to ${scanData.status}`);
+        }
+        return { ...scanData };
+      });
+      setVulnerabilities([...vulnData]);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch scan');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch scan';
+      setError(errorMessage);
+      // Only log network errors, don't throw
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        console.warn('Network error fetching scan details - API may not be available:', errorMessage);
+      } else {
+        console.error('Error fetching scan details:', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
+    isInitialMount.current = true;
     fetchScan();
-    const interval = setInterval(fetchScan, 3000); // Poll every 3 seconds
+    
+    // Poll every 2 seconds to catch status changes quickly
+    const interval = setInterval(() => {
+      fetchScan();
+    }, 2000);
+    
     return () => clearInterval(interval);
-  }, [id]);
+  }, [fetchScan]);
 
   return { scan, vulnerabilities, loading, error, refetch: fetchScan };
 }
@@ -87,9 +153,16 @@ export function useDashboardStats() {
         if (response.ok) {
           const data = await response.json();
           setStats(data);
+        } else {
+          console.warn(`Failed to fetch stats: ${response.status} ${response.statusText}`);
         }
       } catch (err) {
-        console.error('Failed to fetch stats:', err);
+        // Only log network errors, don't crash
+        if (err instanceof TypeError && err.message.includes('fetch')) {
+          console.warn('Network error fetching stats - API may not be available');
+        } else {
+          console.error('Failed to fetch stats:', err);
+        }
       } finally {
         setLoading(false);
       }
