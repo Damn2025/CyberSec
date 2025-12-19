@@ -24,7 +24,6 @@ export default function CWETop25Card({ vulnerability }: CWETop25CardProps) {
   
   const rank = extractRank(vulnerability.title);
   const cweName = extractCWEName(vulnerability.title);
-  const isCWE = vulnerability.category?.includes('CWE Top 25') || rank !== null;
 
   // Get rank badge color based on rank
   const getRankColor = (rank: number | null) => {

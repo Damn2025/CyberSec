@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "source": "NIST SP 800-53A Rev 5",
+    "version": "5.2.0",
+    "description": "NIST SP 800-53A Rev 5 subset for Web/Mobile Vulnerability Scanners",
+    "generated_for": "Hybrid Vulnerability Scanner (Web & Mobile)"
+  },
+  "controls": [
+    {
+      "control_id": "RA-05",
+      "title": "VULNERABILITY MONITORING AND SCANNING",
+      "description": "Monitor and scan for vulnerabilities in the system and hosted applications",
+      "severity": "high",
+      "category": "Risk Assessment",
+      "requirements": [
+        {
+          "requirement_id": "RA-05-a",
+          "title": "Vulnerability Monitoring",
+          "description": "Monitor and scan for vulnerabilities in the system and hosted applications",
+          "test_type": "vulnerability_scanning",
+          "checks": ["security_headers", "ssl_tls", "information_disclosure"]
+        },
+        {
+          "requirement_id": "RA-05-b",
+          "title": "Vulnerability Monitoring Tools",
+          "description": "Employ vulnerability monitoring tools and techniques that facilitate interoperability",
+          "test_type": "tool_verification",
+          "checks": ["automated_scanning", "standard_compliance"]
+        },
+        {
+          "requirement_id": "RA-05(02)",
+          "title": "Update Vulnerabilities to be Scanned",
+          "description": "Update the system vulnerabilities to be scanned",
+          "test_type": "vulnerability_database",
+          "checks": ["cwe_compliance", "latest_threats"]
+        },
+        {
+          "requirement_id": "RA-05(03)",
+          "title": "Breadth and Depth of Coverage",
+          "description": "Define the breadth and depth of vulnerability scanning coverage",
+          "test_type": "coverage_analysis",
+          "checks": ["comprehensive_scanning", "multiple_scan_types"]
+        },
+        {
+          "requirement_id": "RA-05(05)",
+          "title": "Privileged Access",
+          "description": "Implement privileged access authorization for vulnerability scanning activities",
+          "test_type": "access_control",
+          "checks": ["authentication", "authorization"]
+        }
+      ]
+    },
+    {
+      "control_id": "SA-11",
+      "title": "DEVELOPER TESTING AND EVALUATION",
+      "description": "Require the developer of the system to perform security testing",
+      "severity": "high",
+      "category": "System and Services Acquisition",
+      "requirements": [
+        {
+          "requirement_id": "SA-11(01)",
+          "title": "Static Code Analysis",
+          "description": "Employ static code analysis tools to identify common flaws",
+          "test_type": "static_analysis",
+          "checks": ["code_quality", "security_patterns", "vulnerability_patterns"]
+        },
+        {
+          "requirement_id": "SA-11(08)",
+          "title": "Dynamic Code Analysis",
+          "description": "Employ dynamic code analysis tools to identify common flaws",
+          "test_type": "dynamic_analysis",
+          "checks": ["runtime_testing", "injection_tests", "xss_tests", "sql_injection_tests"]
+        }
+      ]
+    },
+    {
+      "control_id": "SI-02",
+      "title": "FLAW REMEDIATION",
+      "description": "Identify, report, and correct system flaws",
+      "severity": "critical",
+      "category": "System and Information Integrity",
+      "requirements": [
+        {
+          "requirement_id": "SI-02-a",
+          "title": "Flaw Identification",
+          "description": "Identify system flaws",
+          "test_type": "vulnerability_detection",
+          "checks": ["sql_injection", "xss", "csrf", "command_injection", "path_traversal"]
+        },
+        {
+          "requirement_id": "SI-02-b",
+          "title": "Flaw Reporting",
+          "description": "Report identified flaws",
+          "test_type": "reporting",
+          "checks": ["detailed_reports", "evidence_collection", "recommendations"]
+        },
+        {
+          "requirement_id": "SI-02-c",
+          "title": "Flaw Correction",
+          "description": "Correct identified system flaws",
+          "test_type": "remediation",
+          "checks": ["remediation_guidance", "mitigation_strategies"]
+        }
+      ]
+    }
+  ],
+  "compliance_mapping": {
+    "RA-05": {
+      "vulnerabilities": ["information_disclosure", "security_headers", "ssl_tls", "cors"],
+      "severity": "high"
+    },
+    "SA-11": {
+      "vulnerabilities": ["sql_injection", "xss", "command_injection", "code_injection"],
+      "severity": "high"
+    },
+    "SI-02": {
+      "vulnerabilities": ["all"],
+      "severity": "critical"
+    }
+  }
+}
+

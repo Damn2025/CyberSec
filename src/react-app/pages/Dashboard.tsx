@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Shield, Activity, AlertTriangle, FileSearch, Plus, Globe, Smartphone } from 'lucide-react';
+import { Shield, Activity, AlertTriangle, FileSearch, Plus, Globe, Smartphone, LogOut, User as UserIcon } from 'lucide-react';
+import { useNavigate } from "react-router";
 import StatCard from '@/react-app/components/StatCard';
 import ScanCard from '@/react-app/components/ScanCard';
 import MobileScanCard from '@/react-app/components/MobileScanCard';
@@ -7,8 +8,12 @@ import NewScanModal from '@/react-app/components/NewScanModal';
 import NewMobileScanModal from '@/react-app/components/NewMobileScanModal';
 import { useScans, useDashboardStats } from '@/react-app/hooks/useScans';
 import { useMobileScans } from '@/react-app/hooks/useMobileScans';
+import { useAuth } from '@/react-app/auth/AuthProvider';
+import CyberSecLog from '../assets/Cybersec.png'
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const { user, profile, profileLoading, signOut } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [mobileModalOpen, setMobileModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'web' | 'mobile'>('web');
@@ -23,17 +28,39 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20">
-                <Shield className="w-8 h-8 text-white" />
+              <div className="p-3 rounded-xl ">
+                 <img src={CyberSecLog} alt="CyberSec Logo" className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                  CyberSec
-                </h1>
-                <p className="text-sm text-gray-400">Advanced Security Vulnerability Scanner</p>
+              <div className="leading-tight">
+            <div className="text-2xl font-bold tracking-tight text-shadow-glow">
+              CYBER<span className="text-red-600">SEC</span>
+            </div>
+            <div className="text-[10px] sm:text-xs font-mono tracking-[0.25em] uppercase text-gray-300">
+              EVOKE AI DIVISION
+            </div>
+          </div>  
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-800 bg-gray-950/60 text-gray-300">
+                <UserIcon className="w-4 h-4 text-gray-500" />
+                <span className="text-sm">
+                  {profileLoading
+                    ? "Loading profile..."
+                    : profile?.full_name || user?.email || "Signed in"}
+                </span>
+              </div>
+              <button
+                onClick={async () => {
+                  await signOut();
+                  navigate("/", { replace: true });
+                }}
+                className="flex items-center gap-2 px-4 py-3 rounded-xl border border-gray-800 bg-gray-950/40 text-gray-300 hover:text-white hover:bg-gray-900 transition-all"
+              >
+                <LogOut className="w-5 h-5" />
+                Logout
+              </button>
               <button
                 onClick={() => setModalOpen(true)}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 hover:scale-105"
@@ -133,14 +160,14 @@ export default function Dashboard() {
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">No scans yet</h3>
               <p className="text-gray-400 mb-6 max-w-md">
-                Get started by creating your first security scan. We'll analyze your application for vulnerabilities.
+                Create your first scan to get started. We'll analyze your application for security vulnerabilities.
               </p>
               <button
                   onClick={() => setModalOpen(true)}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg shadow-blue-500/20"
                 >
                   <Plus className="w-5 h-5" />
-                  Create First Web Scan
+                  Create Your First Scan
                 </button>
               </div>
             ) : (
@@ -165,14 +192,14 @@ export default function Dashboard() {
                 </div>
                 <h3 className="text-xl font-semibold text-white mb-2">No mobile scans yet</h3>
                 <p className="text-gray-400 mb-6 max-w-md">
-                  Upload an Android APK or iOS IPA file to analyze your mobile application for security vulnerabilities.
+                  Create your first scan by uploading an Android APK or iOS IPA file to analyze your mobile application for security vulnerabilities.
                 </p>
                 <button
                   onClick={() => setMobileModalOpen(true)}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-medium hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg shadow-purple-500/20"
                 >
                   <Plus className="w-5 h-5" />
-                  Create First Mobile Scan
+                  Create Your First Scan
                 </button>
               </div>
             ) : (

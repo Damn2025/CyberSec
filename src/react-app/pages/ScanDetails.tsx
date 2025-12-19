@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Activity, CheckCircle, AlertCircle, Clock, Loader2, ExternalLink, Trash2, Award, Shield } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, Clock, Loader2, ExternalLink, Trash2, Award, Shield } from 'lucide-react';
 import { useScan } from '@/react-app/hooks/useScans';
 import VulnerabilityCard from '@/react-app/components/VulnerabilityCard';
 import CWETop25Card from '@/react-app/components/CWETop25Card';
@@ -71,12 +71,28 @@ export default function ScanDetails() {
     info: scan.severity_info,
   };
 
-  // Separate CWE Top 25 vulnerabilities from standard vulnerabilities
-  const cweTop25Vulns = vulnerabilities.filter(v => 
-    v.category?.includes('CWE Top 25') || v.title.includes('CWE Top 25')
+  // Determine scanner type for each vulnerability (Standard, CWE_TOP_25, NIST_SP_800_171)
+  const getScannerType = (v: { category?: string | null; title: string }) => {
+    if (v.category?.includes("CWE Top 25") || v.title.includes("CWE Top 25")) {
+      return "CWE_TOP_25" as const;
+    }
+    if (
+      v.category?.includes("NIST SP 800-171") ||
+      v.title.toLowerCase().includes("nist")
+    ) {
+      return "NIST_SP_800_171" as const;
+    }
+    return "STANDARD" as const;
+  };
+
+  const cweTop25Vulns = vulnerabilities.filter(
+    (v) => getScannerType(v) === "CWE_TOP_25",
   );
-  const standardVulns = vulnerabilities.filter(v => 
-    !v.category?.includes('CWE Top 25') && !v.title.includes('CWE Top 25')
+  const nistVulns = vulnerabilities.filter(
+    (v) => getScannerType(v) === "NIST_SP_800_171",
+  );
+  const standardVulns = vulnerabilities.filter(
+    (v) => getScannerType(v) === "STANDARD",
   );
 
   // Extract rank for sorting CWE Top 25 vulnerabilities
@@ -172,6 +188,19 @@ export default function ScanDetails() {
                   </div>
                 ))}
               </div>
+
+              {/* Scanner-type breakdown */}
+              <div className="mt-4 flex flex-wrap gap-3 text-xs md:text-sm text-gray-300">
+                <span className="px-3 py-1 rounded-full bg-gray-800 border border-gray-700 font-mono">
+                  Standard: {standardVulns.length}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-gray-800 border border-gray-700 font-mono">
+                  CWE Top 25: {cweTop25Vulns.length}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-gray-800 border border-gray-700 font-mono">
+                  NIST SP 800-171: {nistVulns.length}
+                </span>
+              </div>
             </div>
             
             {cweTop25Vulns.length > 0 && (
@@ -187,6 +216,49 @@ export default function ScanDetails() {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* NIST SP 800-171 Vulnerabilities Section */}
+        {scan.status === "completed" && nistVulns.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-900/10 border border-blue-500/20">
+                <Shield className="w-6 h-6 text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  NIST SP 800-171 Controls 
+                </h2>
+                <p className="text-sm text-gray-400">
+                  Findings mapped to NIST SP 800-171 security controls
+                </p>
+              </div>
+              <span className="ml-auto px-3 py-1 rounded-full text-sm font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                {nistVulns.length} detected
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {nistVulns
+                .sort((a, b) => {
+                  // sort by severity then CVSS
+                  const severityOrder: Record<string, number> = {
+                    critical: 5,
+                    high: 4,
+                    medium: 3,
+                    low: 2,
+                    info: 1,
+                  };
+                  const aOrder = severityOrder[a.severity] || 0;
+                  const bOrder = severityOrder[b.severity] || 0;
+                  if (bOrder !== aOrder) return bOrder - aOrder;
+                  return (b.cvss_score || 0) - (a.cvss_score || 0);
+                })
+                .map((vuln) => (
+                  <VulnerabilityCard key={vuln.id} vulnerability={vuln} />
+                ))}
+            </div>
           </div>
         )}
 

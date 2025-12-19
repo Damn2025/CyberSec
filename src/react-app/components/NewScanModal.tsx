@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Target, Loader2 } from 'lucide-react';
 import { CreateScan, ScanType } from '@/shared/types';
+import { supabase } from '@/react-app/lib/supabase';
 
 interface NewScanModalProps {
   isOpen: boolean;
@@ -27,9 +28,16 @@ export default function NewScanModal({ isOpen, onClose, onSuccess }: NewScanModa
         scan_type: scanType,
       };
 
+      // Get auth token for user_id extraction
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/scans', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data),
       });
 

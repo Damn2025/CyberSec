@@ -3,10 +3,11 @@ import { zValidator } from "@hono/zod-validator";
 import { cors } from "hono/cors";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { CreateScanSchema } from "@/shared/types";
-import { SecurityScanner, CWETop25Scanner } from "./scanner";
+import { SecurityScanner, CWETop25Scanner, NISTSP800171Scanner } from "./scanner";
 import { ReportGenerator } from "./report-generator";
 import { MobileSecurityScanner } from "./mobile-scanner";
 import { MobileReportGenerator } from "./mobile-report-generator";
+import { scanUrl, scanFile } from "./virustotal";
 import * as wranglerConfig from "../../wrangler.json";
 
 // Define the Env interface to include Supabase vars
@@ -14,6 +15,13 @@ type Env = {
   SUPABASE_URL?: string;
   SUPABASE_KEY?: string;
   R2_BUCKET?: R2Bucket;
+};
+
+// Some mobile scan fields (e.g., evidence, code snippets) can contain null bytes,
+// which Postgres text columns do not support. This helper strips \u0000 safely.
+const sanitizeText = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  return value.replace(/\u0000/g, "");
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -32,39 +40,103 @@ const getSupabase = (env: Env): SupabaseClient => {
   return createClient(supabaseUrl, supabaseKey);
 };
 
-// Get all scans
+// Helper: extract userId from Authorization header
+const getUserIdFromRequest = async (c: any): Promise<string | null> => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader) return null;
+
+  try {
+    const token = authHeader.replace("Bearer ", "");
+    const supabaseUrl = c.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
+    const supabaseAnonKey = c.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) return null;
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+
+    const {
+      data: { user },
+      error: userError,
+    } = await userClient.auth.getUser(token);
+
+    if (!userError && user) {
+      return user.id;
+    }
+  } catch (err) {
+    console.warn("Failed to extract user from token in getUserIdFromRequest:", err);
+  }
+
+  return null;
+};
+
+// Get all scans (scoped to current user)
 app.get("/api/scans", async (c) => {
   const supabase = getSupabase(c.env);
+  const userId = await getUserIdFromRequest(c);
+
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const { data, error } = await supabase
     .from("scans")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
-  // console.log("data", data);
-  // console.log("error", error);
+
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data);
 });
 
-// Get a single scan
+// Get a single scan (scoped to current user)
 app.get("/api/scans/:id", async (c) => {
   const supabase = getSupabase(c.env);
   const id = c.req.param("id");
+  const userId = await getUserIdFromRequest(c);
+
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
   
   const { data, error } = await supabase
     .from("scans")
     .select("*")
     .eq("id", id)
+    .eq("user_id", userId)
     .single();
   
   if (error || !data) return c.json({ error: "Scan not found" }, 404);
   return c.json(data);
 });
 
-// Get vulnerabilities for a scan
+// Get vulnerabilities for a scan (scoped to current user)
 app.get("/api/scans/:id/vulnerabilities", async (c) => {
   const supabase = getSupabase(c.env);
   const id = c.req.param("id");
+  const userId = await getUserIdFromRequest(c);
+
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  // Optional: ensure scan belongs to user
+  const { data: scan, error: scanError } = await supabase
+    .from("scans")
+    .select("id")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (scanError || !scan) {
+    return c.json({ error: "Scan not found" }, 404);
+  }
   
   const { data, error } = await supabase
     .from("web_vulnerabilities")
@@ -81,6 +153,35 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
   try {
     const supabase = getSupabase(c.env);
     const data = c.req.valid("json");
+    
+    // Extract user_id from auth token
+    let userId: string | null = null;
+    const authHeader = c.req.header("Authorization");
+    if (authHeader) {
+      try {
+        const token = authHeader.replace("Bearer ", "");
+        const supabaseUrl = c.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
+        const supabaseAnonKey = c.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+        
+        if (supabaseUrl && supabaseAnonKey) {
+          // Create a Supabase client with anon key and user's token
+          const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+            global: {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          });
+          const { data: { user }, error: userError } = await userClient.auth.getUser(token);
+          if (!userError && user) {
+            userId = user.id;
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to extract user from token:", err);
+        // Continue without user_id if token is invalid
+      }
+    }
     
     // Helper to check if error is internal
     const isInternalError = (err: any): boolean => {
@@ -99,14 +200,21 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
         
-        const result = await supabase
-          .from("scans")
-          .insert({
+        const insertData: any = {
             target_url: data.target_url,
             scan_type: data.scan_type,
             status: "running",
             started_at: new Date().toISOString()
-          })
+        };
+        
+        // Add user_id if available
+        if (userId) {
+          insertData.user_id = userId;
+        }
+        
+        const result = await supabase
+          .from("scans")
+          .insert(insertData)
           .select()
           .single();
         
@@ -160,8 +268,8 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
         const sb = createClient(supabaseUrl, supabaseKey);
         
         try {
-          // Run both scanners in parallel
-          const [standardVulns, cweTop25Results] = await Promise.all([
+          // Run all scanners in parallel
+          const [standardVulns, cweTop25Results, nistResults] = await Promise.all([
             // Standard Security Scanner
             (async () => {
               const scanner = new SecurityScanner({
@@ -181,8 +289,38 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
                 console.warn("CWE Top 25 scanner failed:", error);
                 return [];
               }
+            })(),
+            // NIST SP 800-171 Compliance Scanner
+            (async () => {
+              try {
+                const nistScanner = new NISTSP800171Scanner({
+                  targetUrl: data.target_url,
+                });
+                return await nistScanner.scan();
+              } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                console.warn(`[Scan ${scanId}] NIST SP 800-171 scanner failed for ${data.target_url}:`, errorMessage);
+                // Log full error details for debugging
+                if (error instanceof Error) {
+                  console.warn(`[Scan ${scanId}] NIST scanner error stack:`, error.stack);
+                }
+                return [];
+              }
             })()
           ]);
+
+          // VirusTotal URL Scan
+          console.log(`[Scan ${scanId}] Starting VirusTotal scan for URL: ${data.target_url}`);
+          const virusTotalResult = await scanUrl(data.target_url);
+          if (virusTotalResult) {
+            console.log(`[Scan ${scanId}] VirusTotal URL Scan Results:`, JSON.stringify(virusTotalResult, null, 2));
+            console.log(`[Scan ${scanId}] VirusTotal - Positives: ${virusTotalResult.positives}/${virusTotalResult.total}`);
+            if (virusTotalResult.positives > 0) {
+              console.log(`[Scan ${scanId}] VirusTotal - Malware detected! Permalink: ${virusTotalResult.permalink}`);
+            }
+          } else {
+            console.warn(`[Scan ${scanId}] VirusTotal scan failed or returned no results`);
+          }
 
           // Convert CWE Top 25 results to VulnerabilityResult format
           const cweVulns = cweTop25Results
@@ -195,11 +333,40 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
               cvss_score: result.score,
               cwe_id: result.cwe_id,
               recommendation: result.recommendation,
-              evidence: result.evidence || `CWE Top 25 vulnerability detected. Impact: ${result.impact}. Platforms: ${result.platforms.join(', ')}.`
+              evidence: result.evidence || `CWE Top 25 vulnerability detected. Impact: ${result.impact}. Platforms: ${result.platforms.join(', ')}.`,
+              scannerType:'CWE_Top_25',
             }));
 
-          // Combine both scanner results
-          const allVulnerabilities = [...standardVulns, ...cweVulns];
+          // Convert NIST SP 800-171 results to VulnerabilityResult format
+          const nistVulns = nistResults
+            .filter(result => !result.compliant) // Only include non-compliant controls
+            .map(result => ({
+              title: `${result.title} (${result.control_id}) - Non-Compliant`,
+              description: `${result.description}. Compliance: ${result.requirements_met}/${result.requirements_total} requirements met.`,
+              severity: result.severity,
+              category: `NIST SP 800-171 - ${result.category}`,
+              cvss_score: result.severity === 'critical' ? 9.0 : result.severity === 'high' ? 7.0 : result.severity === 'medium' ? 5.0 : 3.0,
+              cwe_id: null,
+              recommendation: result.recommendation,
+              evidence: result.evidence || `NIST control ${result.control_id} non-compliance detected. ${result.requirements_met}/${result.requirements_total} requirements met.`,
+              scannerType:'NIST',
+            }));
+
+          // Add scannerType to standard vulnerabilities
+          const standardVulnsWithType = standardVulns.map(vuln => ({
+            ...vuln,
+            scannerType: 'STANDARD' as const,
+            }));
+
+          // Combine all scanner results
+          const allVulnerabilities = [...standardVulnsWithType, ...cweVulns, ...nistVulns];
+          
+          console.log(`[Scan ${scanId}] Scanner results:`, {
+            standard: standardVulnsWithType.length,
+            cwe: cweVulns.length,
+            nist: nistVulns.length,
+            total: allVulnerabilities.length
+          });
           
           // Remove duplicates based on CWE ID and title similarity
           const uniqueVulns = allVulnerabilities.filter((vuln, index, self) => {
@@ -221,16 +388,18 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
           
           const vulnerabilities = uniqueVulns;
           
+          console.log(`[Scan ${scanId}] After deduplication: ${vulnerabilities.length} unique vulnerabilities`);
+          
           const severityCounts: Record<string, number> = {
             critical: 0, high: 0, medium: 0, low: 0, info: 0,
           };
           
           // Batch insert vulnerabilities
-          const vulnsToInsert = vulnerabilities.map(vuln => {
+          const vulnsToInsert = vulnerabilities.map((vuln: typeof allVulnerabilities[0]) => {
             if (severityCounts[vuln.severity] !== undefined) {
               severityCounts[vuln.severity]++;
             }
-            return {
+            const vulnData: any = {
               scan_id: scanId,
               title: vuln.title,
               description: vuln.description,
@@ -239,25 +408,72 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
               cvss_score: vuln.cvss_score || null,
               cwe_id: vuln.cwe_id || null,
               recommendation: vuln.recommendation,
-              evidence: vuln.evidence || null
+              evidence: vuln.evidence || null,
             };
+            
+            // Only add user_id and scannerType if they exist (columns might not exist in DB yet)
+            if (userId) {
+              vulnData.user_id = userId;
+            }
+            if (vuln.scannerType) {
+              vulnData.scannerType = vuln.scannerType;
+            }
+            
+            return vulnData;
           });
 
           if (vulnsToInsert.length > 0) {
-              const { error: vulnError } = await sb.from("web_vulnerabilities").insert(vulnsToInsert);
+              console.log(`[Scan ${scanId}] Attempting to insert ${vulnsToInsert.length} vulnerabilities into database...`);
+              console.log(`[Scan ${scanId}] Sample vulnerability data:`, JSON.stringify(vulnsToInsert[0], null, 2));
+              console.log(`[Scan ${scanId}] User ID:`, userId || 'null');
+              console.log(`[Scan ${scanId}] Table: web_vulnerabilities`);
+              
+              // Try inserting with optional fields first, if it fails, try without them
+              let vulnError: any = null;
+              let insertedData: any = null;
+              
+              console.log(`[Scan ${scanId}] Inserting with all fields...`);
+              const insertResult = await sb.from("web_vulnerabilities").insert(vulnsToInsert).select();
+              vulnError = insertResult.error;
+              insertedData = insertResult.data;
+              
+              console.log(`[Scan ${scanId}] Insert result:`, {
+                error: vulnError ? vulnError.message : null,
+                dataCount: insertedData?.length || 0,
+                inserted: !!insertedData
+              });
+              
+              // If insert failed due to missing columns, try without user_id and scannerType
+              if (vulnError && (vulnError.message?.includes('column') || vulnError.message?.includes('user_id') || vulnError.message?.includes('scannerType'))) {
+                console.warn(`[Scan ${scanId}] Insert failed with optional columns, retrying without user_id and scannerType...`);
+                const vulnsWithoutOptional = vulnsToInsert.map(({ user_id, scannerType, ...rest }) => rest);
+                const retryResult = await sb.from("web_vulnerabilities").insert(vulnsWithoutOptional).select();
+                vulnError = retryResult.error;
+                insertedData = retryResult.data;
+                console.log(`[Scan ${scanId}] Retry result:`, {
+                  error: vulnError ? vulnError.message : null,
+                  dataCount: insertedData?.length || 0,
+                  inserted: !!insertedData
+                });
+              }
+              
               if (vulnError) {
-                console.error("Error inserting vulns:", vulnError);
+                console.error(`[Scan ${scanId}] Error inserting vulns:`, vulnError);
+                console.error(`[Scan ${scanId}] Error details:`, JSON.stringify(vulnError, null, 2));
               } else {
-                const standardCount = standardVulns.length;
+                console.log(`[Scan ${scanId}] ✅ Successfully inserted ${insertedData?.length || vulnsToInsert.length} vulnerabilities`);
+                const standardCount = standardVulnsWithType.length;
                 const cweCount = cweVulns.length;
+                const nistCount = nistVulns.length;
                 console.log(`✅ Scan ${scanId} completed: Found ${vulnsToInsert.length} unique vulnerability/vulnerabilities`);
                 console.log(`   - Standard Scanner: ${standardCount} vulnerabilities`);
                 console.log(`   - CWE Top 25 Scanner: ${cweCount} vulnerabilities detected`);
+                console.log(`   - NIST SP 800-171 Scanner: ${nistCount} non-compliant controls`);
                 console.log(`   - Severity Breakdown: Critical: ${severityCounts.critical}, High: ${severityCounts.high}, Medium: ${severityCounts.medium}, Low: ${severityCounts.low}, Info: ${severityCounts.info}`);
               }
           } else {
             console.log(`✅ Scan ${scanId} completed: No vulnerabilities found for ${data.target_url}`);
-            console.log(`   - Both Standard Scanner and CWE Top 25 Scanner completed successfully`);
+            console.log(`   - Standard Scanner, CWE Top 25 Scanner, and NIST SP 800-171 Scanner completed successfully`);
           }
           
           // Update scan status
@@ -314,12 +530,39 @@ app.delete("/api/scans/:id", async (c) => {
 // Get dashboard statistics
 app.get("/api/dashboard/stats", async (c) => {
   const supabase = getSupabase(c.env);
+  const userId = await getUserIdFromRequest(c);
+
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
   
-  const { count: totalScans } = await supabase.from("scans").select("*", { count: "exact", head: true });
-  const { count: completedScans } = await supabase.from("scans").select("*", { count: "exact", head: true }).eq("status", "completed");
-  const { count: runningScans } = await supabase.from("scans").select("*", { count: "exact", head: true }).eq("status", "running");
-  const { count: totalVulnerabilities } = await supabase.from("web_vulnerabilities").select("*", { count: "exact", head: true });
-  const { count: criticalVulns } = await supabase.from("web_vulnerabilities").select("*", { count: "exact", head: true }).eq("severity", "critical");
+  const { count: totalScans } = await supabase
+    .from("scans")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  const { count: completedScans } = await supabase
+    .from("scans")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "completed")
+    .eq("user_id", userId);
+
+  const { count: runningScans } = await supabase
+    .from("scans")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "running")
+    .eq("user_id", userId);
+
+  const { count: totalVulnerabilities } = await supabase
+    .from("web_vulnerabilities")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  const { count: criticalVulns } = await supabase
+    .from("web_vulnerabilities")
+    .select("*", { count: "exact", head: true })
+    .eq("severity", "critical")
+    .eq("user_id", userId);
   
   return c.json({
     totalScans: totalScans || 0,
@@ -370,6 +613,56 @@ app.post("/api/scans/cwe-top-25", async (c) => {
     console.error("CWE Top 25 scan error:", error);
     return c.json({ 
       error: "Failed to perform CWE Top 25 scan",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, 500);
+  }
+});
+
+// NIST SP 800-171 Compliance Scanner endpoint
+app.post("/api/scans/nist-sp-800-171", async (c) => {
+  try {
+    const body = await c.req.json();
+    const targetUrl = body.target_url;
+    
+    if (!targetUrl) {
+      return c.json({ error: "target_url is required" }, 400);
+    }
+
+    const scanner = new NISTSP800171Scanner({
+      targetUrl: targetUrl,
+    });
+    
+    const results = await scanner.scan();
+    
+    // Return results with control_id, compliance status, and other fields
+    return c.json({
+      success: true,
+      target_url: targetUrl,
+      total_controls: results.length,
+      compliant_controls: results.filter(v => v.compliant).length,
+      non_compliant_controls: results.filter(v => !v.compliant).length,
+      compliance_percentage: results.length > 0 
+        ? Math.round((results.filter(v => v.compliant).length / results.length) * 100) 
+        : 0,
+      results: results.map(v => ({
+        control_id: v.control_id,
+        title: v.title,
+        category: v.category,
+        severity: v.severity,
+        description: v.description,
+        compliant: v.compliant,
+        requirements_met: v.requirements_met,
+        requirements_total: v.requirements_total,
+        compliance_percentage: Math.round((v.requirements_met / v.requirements_total) * 100),
+        evidence: v.evidence,
+        recommendation: v.recommendation,
+        nist_control: v.nist_control,
+      })),
+    });
+  } catch (error) {
+    console.error("NIST SP 800-171 scan error:", error);
+    return c.json({ 
+      error: "Failed to perform NIST SP 800-171 compliance scan",
       details: error instanceof Error ? error.message : "Unknown error"
     }, 500);
   }
@@ -437,9 +730,16 @@ app.get("/api/scans/:id/export", async (c) => {
 // Get all mobile scans
 app.get("/api/mobile-scans", async (c) => {
   const supabase = getSupabase(c.env);
+  const userId = await getUserIdFromRequest(c);
+
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const { data, error } = await supabase
     .from("mobile_scans")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(50);
     
@@ -451,10 +751,17 @@ app.get("/api/mobile-scans", async (c) => {
 app.get("/api/mobile-scans/:id", async (c) => {
   const supabase = getSupabase(c.env);
   const id = c.req.param("id");
+  const userId = await getUserIdFromRequest(c);
+
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const { data, error } = await supabase
     .from("mobile_scans")
     .select("*")
     .eq("id", id)
+    .eq("user_id", userId)
     .single();
   
   if (error || !data) return c.json({ error: "Mobile scan not found" }, 404);
@@ -465,6 +772,24 @@ app.get("/api/mobile-scans/:id", async (c) => {
 app.get("/api/mobile-scans/:id/vulnerabilities", async (c) => {
   const supabase = getSupabase(c.env);
   const id = c.req.param("id");
+  const userId = await getUserIdFromRequest(c);
+
+  if (!userId) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
+  // Optional: ensure mobile scan belongs to user
+  const { data: scan, error: scanError } = await supabase
+    .from("mobile_scans")
+    .select("id")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (scanError || !scan) {
+    return c.json({ error: "Mobile scan not found" }, 404);
+  }
+
   const { data, error } = await supabase
     .from("mobile_vulnerabilities")
     .select("*")
@@ -487,6 +812,33 @@ app.post("/api/mobile-scans", async (c) => {
   
   if (!platform || (platform !== "android" && platform !== "ios")) {
     return c.json({ error: "Invalid platform. Must be 'android' or 'ios'" }, 400);
+  }
+  
+  // Extract user_id from auth token
+  let userId: string | null = null;
+  const authHeader = c.req.header("Authorization");
+  if (authHeader) {
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const supabaseUrl = c.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
+      const supabaseAnonKey = c.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+      
+      if (supabaseUrl && supabaseAnonKey) {
+        const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+          global: {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        });
+        const { data: { user }, error: userError } = await userClient.auth.getUser(token);
+        if (!userError && user) {
+          userId = user.id;
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to extract user from token:", err);
+    }
   }
   
   // Validate file type
@@ -520,16 +872,23 @@ app.post("/api/mobile-scans", async (c) => {
     });
     
     // Create initial scan record
-    const { data: scan, error } = await supabase
-      .from("mobile_scans")
-      .insert({
+    const insertData: any = {
         app_name: file.name,
         platform: platform,
         file_key: fileKey,
         file_size: file.size,
         status: "running",
         started_at: new Date().toISOString()
-      })
+    };
+    
+    // Add user_id if available
+    if (userId) {
+      insertData.user_id = userId;
+    }
+    
+    const { data: scan, error } = await supabase
+      .from("mobile_scans")
+      .insert(insertData)
       .select()
       .single();
     
@@ -559,6 +918,19 @@ app.post("/api/mobile-scans", async (c) => {
           
           const scanResult = await scanner.scan();
           
+          // VirusTotal File Scan
+          console.log(`[Mobile Scan ${scanId}] Starting VirusTotal scan for file: ${file.name}`);
+          const virusTotalResult = await scanFile(fileBuffer, file.name);
+          if (virusTotalResult) {
+            console.log(`[Mobile Scan ${scanId}] VirusTotal File Scan Results:`, JSON.stringify(virusTotalResult, null, 2));
+            console.log(`[Mobile Scan ${scanId}] VirusTotal - Positives: ${virusTotalResult.positives}/${virusTotalResult.total}`);
+            if (virusTotalResult.positives > 0) {
+              console.log(`[Mobile Scan ${scanId}] VirusTotal - Malware detected! Permalink: ${virusTotalResult.permalink}`);
+            }
+          } else {
+            console.warn(`[Mobile Scan ${scanId}] VirusTotal scan failed or returned no results`);
+          }
+          
           // Update app metadata
           await sb.from("mobile_scans").update({
              app_name: scanResult.metadata.appName || file.name,
@@ -578,16 +950,16 @@ app.post("/api/mobile-scans", async (c) => {
             }
             return {
               mobile_scan_id: scanId,
-              title: vuln.title,
-              description: vuln.description,
+              title: sanitizeText(vuln.title) || "UNKNOWN",
+              description: sanitizeText(vuln.description) || "No description provided",
               severity: vuln.severity,
-              owasp_category: vuln.owasp_category,
+              owasp_category: sanitizeText(vuln.owasp_category) || "Uncategorized",
               cvss_score: vuln.cvss_score || null,
-              cwe_id: vuln.cwe_id || null,
-              recommendation: vuln.recommendation,
-              evidence: vuln.evidence || null,
-              file_path: vuln.file_path || null,
-              code_snippet: vuln.code_snippet || null
+              cwe_id: sanitizeText(vuln.cwe_id || null),
+              recommendation: sanitizeText(vuln.recommendation),
+              evidence: sanitizeText(vuln.evidence),
+              file_path: sanitizeText(vuln.file_path),
+              code_snippet: sanitizeText(vuln.code_snippet)
             };
           });
           

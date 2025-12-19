@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Smartphone, Upload, Loader2 } from 'lucide-react';
 import { MobilePlatform } from '@/shared/types';
+import { supabase } from '@/react-app/lib/supabase';
 
 interface NewMobileScanModalProps {
   isOpen: boolean;
@@ -61,8 +62,16 @@ export default function NewMobileScanModal({ isOpen, onClose, onSuccess }: NewMo
       formData.append('file', file);
       formData.append('platform', platform);
 
+      // Get auth token for user_id extraction
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: HeadersInit = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch('/api/mobile-scans', {
         method: 'POST',
+        headers,
         body: formData,
       });
 
