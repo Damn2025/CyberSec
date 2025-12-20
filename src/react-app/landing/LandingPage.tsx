@@ -19,6 +19,7 @@ import ChatWidget from "@/react-app/landing/components/ChatWidget";
 import FloatingActions from "@/react-app/landing/components/FloatingActions";
 import { useAuth } from "@/react-app/auth/AuthProvider";
 
+
 export default function LandingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();

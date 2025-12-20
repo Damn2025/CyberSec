@@ -4,6 +4,8 @@ import ScanDetails from "@/react-app/pages/ScanDetails";
 import MobileScanDetails from "@/react-app/pages/MobileScanDetails";
 import LandingPage from "@/react-app/landing/LandingPage";
 import { RequireAuth } from "@/react-app/auth/RequireAuth";
+import PrivacyPolicy from "@/react-app/auth/PrivacyPolicy";
+
 
 export default function App() {
   return (
@@ -33,6 +35,10 @@ export default function App() {
               <MobileScanDetails />
             </RequireAuth>
           }
+        />
+        <Route
+          path="/privacy-policy"
+          element={<PrivacyPolicy />}
         />
       </Routes>
     </Router>

@@ -2,48 +2,30 @@ import { Instagram, Linkedin } from 'lucide-react';
 import Logo from '../assets/Cybersec.png';
 
 const Footer = () => (
-  <footer className="bg-black border-t border-white/10 pt-20 pb-10">
+  <footer className="bg-black border-t border-white/10 py-8">
     <div className="container mx-auto px-6">
-      <div className="grid md:grid-cols-4 gap-12 mb-16">
-        <div>
-          <div className="flex items-center gap-2 font-mono text-xl font-bold text-white mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-gray-500 text-sm font-mono">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <img src={Logo} alt="CyberSec Logo" className="w-6 h-6" />
-            <span>CYBER<span className="text-red-600">SEC</span></span>
+            <span className="text-white font-bold">
+              CYBER<span className="text-red-600">SEC</span>
+            </span>
           </div>
-          <p className="text-gray-500 text-sm leading-relaxed">
+          <p className="hidden lg:block text-gray-500 text-xs max-w-xs">
             Next-generation cybersecurity scanning infrastructure designed for the modern web.
           </p>
         </div>
-        <div>
-          <h4 className="text-white font-bold mb-6 font-mono">PRODUCT</h4>
-          <ul className="space-y-4 text-gray-500 text-sm">
-            <li><a href="#" className="hover:text-red-500 transition-colors">Scanner</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">Integrations</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">Enterprise</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">Changelog</a></li>
-          </ul>
+        <div className="flex items-center gap-6">
+          <p>
+            © {new Date().getFullYear()} {' '}
+            <span className="text-yellow-500 font-semibold">EVOKE AI</span>. All rights reserved.
+          </p>
+          <a href="/privacy-policy" className="hover:text-red-500 transition-colors">
+            Privacy Policy
+          </a>
         </div>
-        <div>
-          <h4 className="text-white font-bold mb-6 font-mono">RESOURCES</h4>
-          <ul className="space-y-4 text-gray-500 text-sm">
-            <li><a href="#" className="hover:text-red-500 transition-colors">Documentation</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">API Reference</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">Community</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">Blog</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="text-white font-bold mb-6 font-mono">LEGAL</h4>
-          <ul className="space-y-4 text-gray-500 text-sm">
-            <li><a href="#" className="hover:text-red-500 transition-colors">Privacy Policy</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">Terms of Service</a></li>
-            <li><a href="#" className="hover:text-red-500 transition-colors">Security</a></li>
-          </ul>
-        </div>
-      </div>
-      <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center text-gray-600 text-xs font-mono">
-        <div>© 2024 CyberSec Security Inc. All rights reserved.</div>
-        <div className="flex items-center gap-4 mt-4 md:mt-0">
+        <div className="flex items-center gap-4">
           <a
             href="https://www.linkedin.com/company/ai-evoke/?viewAsMember=true"
             target="_blank"
@@ -67,7 +49,6 @@ const Footer = () => (
         </div>
       </div>
     </div>
-    
   </footer>
 );
 
