@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router';
 import { Smartphone, Clock, CheckCircle, AlertCircle, Loader2, ChevronRight } from 'lucide-react';
 import { MobileScan } from '@/shared/types';
 import SeverityBadge from './SeverityBadge';
-import { formatDistanceToNow } from 'date-fns';
 
 interface MobileScanCardProps {
   scan: MobileScan;
