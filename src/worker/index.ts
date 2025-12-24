@@ -7,7 +7,6 @@ import { SecurityScanner, CWETop25Scanner, NISTSP800171Scanner } from "./scanner
 import { ReportGenerator } from "./report-generator";
 import { MobileSecurityScanner } from "./mobile-scanner";
 import { MobileReportGenerator } from "./mobile-report-generator";
-import { scanUrl, scanFile } from "./virustotal";
 import * as wranglerConfig from "../../wrangler.json";
 
 // Define the Env interface to include Supabase vars
@@ -308,19 +307,6 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
               }
             })()
           ]);
-
-          // VirusTotal URL Scan
-          console.log(`[Scan ${scanId}] Starting VirusTotal scan for URL: ${data.target_url}`);
-          const virusTotalResult = await scanUrl(data.target_url);
-          if (virusTotalResult) {
-            console.log(`[Scan ${scanId}] VirusTotal URL Scan Results:`, JSON.stringify(virusTotalResult, null, 2));
-            console.log(`[Scan ${scanId}] VirusTotal - Positives: ${virusTotalResult.positives}/${virusTotalResult.total}`);
-            if (virusTotalResult.positives > 0) {
-              console.log(`[Scan ${scanId}] VirusTotal - Malware detected! Permalink: ${virusTotalResult.permalink}`);
-            }
-          } else {
-            console.warn(`[Scan ${scanId}] VirusTotal scan failed or returned no results`);
-          }
 
           // Convert CWE Top 25 results to VulnerabilityResult format
           const cweVulns = cweTop25Results
@@ -917,19 +903,6 @@ app.post("/api/mobile-scans", async (c) => {
           });
           
           const scanResult = await scanner.scan();
-          
-          // VirusTotal File Scan
-          console.log(`[Mobile Scan ${scanId}] Starting VirusTotal scan for file: ${file.name}`);
-          const virusTotalResult = await scanFile(fileBuffer, file.name);
-          if (virusTotalResult) {
-            console.log(`[Mobile Scan ${scanId}] VirusTotal File Scan Results:`, JSON.stringify(virusTotalResult, null, 2));
-            console.log(`[Mobile Scan ${scanId}] VirusTotal - Positives: ${virusTotalResult.positives}/${virusTotalResult.total}`);
-            if (virusTotalResult.positives > 0) {
-              console.log(`[Mobile Scan ${scanId}] VirusTotal - Malware detected! Permalink: ${virusTotalResult.permalink}`);
-            }
-          } else {
-            console.warn(`[Mobile Scan ${scanId}] VirusTotal scan failed or returned no results`);
-          }
           
           // Update app metadata
           await sb.from("mobile_scans").update({

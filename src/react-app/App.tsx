@@ -7,7 +7,19 @@ import { RequireAuth } from "@/react-app/auth/RequireAuth";
 import PrivacyPolicy from "@/react-app/auth/PrivacyPolicy";
 
 
+import { useEffect } from "react";
+
 export default function App() {
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    document.addEventListener("contextmenu", handleContextMenu);
+    return () => {
+      document.removeEventListener("contextmenu", handleContextMenu);
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>

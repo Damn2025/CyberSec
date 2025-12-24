@@ -1,7 +1,7 @@
 import { Mail, MessageCircle, Phone } from 'lucide-react';
 
 const CONTACT = {
-  email: 'vikaskaushalevoke.ai@gmail.com',
+  email: 'damnartjk@gmail.com',
   phoneDisplay: '+1 (234) 567-890',
   phoneTel: '7986175240',
   whatsappNumber: '7986175240', // digits only for wa.me
@@ -33,14 +33,6 @@ const FloatingActions = () => {
         <Phone className="h-5 w-5" />
       </a>
 
-      <a
-        href={`mailto:${CONTACT.email}`}
-        aria-label="Email us"
-        title={`Email (${CONTACT.email})`}
-        className="group inline-flex h-12 w-12 items-center justify-center rounded-full bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.35)] transition-all hover:bg-red-700 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-400/60"
-      >
-        <Mail className="h-5 w-5" />
-      </a>
     </div>
   );
 };

@@ -86,12 +86,6 @@ export default function MobileScanCard({ scan }: MobileScanCardProps) {
       )}
 
       <div className="flex items-center justify-between text-sm text-gray-500">
-        <span>
-          {scan.completed_at
-            ? `Completed ${formatDistanceToNow(new Date(scan.completed_at), { addSuffix: true })}`
-            : `Started ${formatDistanceToNow(new Date(scan.started_at || scan.created_at), { addSuffix: true })}`
-          }
-        </span>
         {scan.status === 'completed' && (
           <span className="text-purple-400 font-medium">{totalVulnerabilities} issues</span>
         )}

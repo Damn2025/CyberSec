@@ -226,7 +226,7 @@ const Advertisements = () => {
         type: "AppSec",
         scope: "Web Applications"
       },
-     
+
     ],
     consulting: [
       {
@@ -362,8 +362,8 @@ const Advertisements = () => {
 
   return (
     <section className="py-16 md:py-24 bg-black border-y border-white/10 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-red-900 to-transparent"></div>
-      
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-red-900 to-transparent"></div>
+
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         {/* Header */}
         <div className="text-center mb-10 md:mb-14">
@@ -377,22 +377,20 @@ const Advertisements = () => {
 
         {/* Toggle Buttons */}
         <div className="flex justify-center mb-10 md:mb-14">
-          <div className="inline-flex items-center gap-1 md:gap-2 p-1.5 md:p-2 bg-white/5 rounded-full border border-white/10">
+          <div className="flex flex-wrap justify-center items-center gap-2 p-2 bg-white/5 rounded-2xl md:rounded-full border border-white/10 max-w-full">
             {categories.map((category) => {
               const Icon = category.icon;
               return (
                 <button
                   key={category.id}
                   onClick={() => setActiveCategory(category.id)}
-                  className={`flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold font-mono transition-all duration-300 ${
-                    activeCategory === category.id
+                  className={`flex items-center gap-1.5 md:gap-2 px-4 md:px-6 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold font-mono transition-all duration-300 whitespace-nowrap ${activeCategory === category.id
                       ? 'bg-red-600 text-white shadow-[0_0_20px_rgba(220,38,38,0.4)]'
                       : 'text-gray-400 hover:text-white hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                  <span className="hidden sm:inline">{category.label}</span>
-                  <span className="sm:hidden">{category.label.slice(0, 4)}</span>
+                  <span>{category.label}</span>
                 </button>
               );
             })}
@@ -412,7 +410,7 @@ const Advertisements = () => {
               >
                 {/* Gradient Background Effect */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${service.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                
+
                 <div className="relative z-10">
                   {/* Icon */}
                   <div className={`w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br ${service.color} flex items-center justify-center mb-4 md:mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`}>

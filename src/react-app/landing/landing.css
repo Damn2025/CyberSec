@@ -137,6 +137,32 @@ body {
   display: none;
 }
 
+
 .font-poppins {
   font-family: 'Poppins', sans-serif !important;
+}
+
+/* Marquee Animation */
+.marquee {
+  overflow: hidden;
+  width: 100%;
+}
+
+.marquee-content {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-16.666%); /* Shifting by 1/6th as there are 6 duplicates */
+  }
 }

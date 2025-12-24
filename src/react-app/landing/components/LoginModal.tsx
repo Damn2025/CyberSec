@@ -142,12 +142,7 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onAuthenticated }: Logi
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
-            <div className="flex items-center justify-between text-sm">
-              <button type="button" className="text-red-500 hover:text-red-400 font-mono text-xs transition-colors">
-                Forgot password?
-              </button>
-            </div>
+     
 
             {/* Submit Button */}
             <button

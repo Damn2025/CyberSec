@@ -130,13 +130,7 @@ export default function MobileScanDetails() {
                     <span>Version: {scan.version}</span>
                   </>
                 )}
-                <span>•</span>
-                <span>
-                  {scan.completed_at 
-                    ? `Completed ${formatDistanceToNow(new Date(scan.completed_at), { addSuffix: true })}`
-                    : `Started ${formatDistanceToNow(new Date(scan.started_at || scan.created_at), { addSuffix: true })}`
-                  }
-                </span>
+                
               </div>
             </div>
             <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-gray-800/50 border border-gray-700">
