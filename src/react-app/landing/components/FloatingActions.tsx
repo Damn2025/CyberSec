@@ -2,7 +2,7 @@ import {  MessageCircle, Phone } from 'lucide-react';
 
 const CONTACT = {
   email: 'damnartjk@gmail.com',
-  phoneDisplay: '+1 (234) 567-890',
+  phoneDisplay: '7986175240 ',
   phoneTel: '7986175240',
   whatsappNumber: '7986175240', // digits only for wa.me
 };
