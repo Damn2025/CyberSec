@@ -4,7 +4,6 @@ import { useMobileScan } from '@/react-app/hooks/useMobileScans';
 import VulnerabilityCard from '@/react-app/components/VulnerabilityCard';
 import SeverityBadge from '@/react-app/components/SeverityBadge';
 import ExportReportButton from '@/react-app/components/ExportReportButton';
-import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
 
 export default function MobileScanDetails() {

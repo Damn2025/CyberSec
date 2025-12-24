@@ -1,6 +1,5 @@
 import { Scan } from '@/shared/types';
 import { Clock, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import SeverityBadge from './SeverityBadge';
 import { useNavigate } from 'react-router';
 

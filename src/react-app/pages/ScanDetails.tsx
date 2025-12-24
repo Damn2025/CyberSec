@@ -5,7 +5,6 @@ import VulnerabilityCard from '@/react-app/components/VulnerabilityCard';
 import CWETop25Card from '@/react-app/components/CWETop25Card';
 import SeverityBadge from '@/react-app/components/SeverityBadge';
 import ExportReportButton from '@/react-app/components/ExportReportButton';
-import { formatDistanceToNow } from 'date-fns';
 import { useState } from 'react';
 
 export default function ScanDetails() {
