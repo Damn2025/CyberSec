@@ -4,7 +4,7 @@ const AboutSection = () => {
   return (
     <section id="about" className="py-12 md:py-16 lg:py-24 bg-black relative">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 lg:gap-16">
+        <div className="flex flex md:flex-row sm: flex-col items-center gap-8 md:gap-12 lg:gap-16">
           <div className="w-full md:w-1/2">
             <div className="inline-flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-0.5 md:py-1 rounded-full border border-red-500/30 bg-red-950/20 text-red-400 text-[10px] md:text-xs font-poppins mb-4 md:mb-6 tracking-widest uppercase">
               <Target className="w-2.5 h-2.5 md:w-3 md:h-3" /> Mission Protocol
