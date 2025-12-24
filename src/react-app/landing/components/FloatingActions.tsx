@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, Phone } from 'lucide-react';
+import {  MessageCircle, Phone } from 'lucide-react';
 
 const CONTACT = {
   email: 'damnartjk@gmail.com',
