@@ -1,4 +1,4 @@
-import React from 'react';
+
 import AstroremedisLogo from '../assets/images/Astroremedis.png';
 import EduonixLogo from '../assets/images/eduonix.png';
 import SipconLogo from '../assets/images/Sipcon.jpg';
