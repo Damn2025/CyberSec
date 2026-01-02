@@ -59,11 +59,10 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin, onAuthenticated }: Sign
 
     try {
       const emailRedirectTo =
-  typeof window !== "undefined"
-    ? `${window.location.origin}${
-        window.location.hostname === "evoke.ai" ? "" : "/cyber"
-      }/dashboard`
-    : undefined;
+        typeof window !== "undefined"
+          ? `${window.location.origin}${window.location.hostname === "evoke.ai" ? "" : "/cyber"
+          }/dashboard`
+          : undefined;
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
@@ -101,14 +100,20 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin, onAuthenticated }: Sign
               },
               {
                 onConflict: "id",
+                ignoreDuplicates: false, // Update if exists
               }
             );
 
           if (profileError) {
-            // If profile creation fails due to RLS (no session), that's okay
-            // The database trigger or AuthProvider will create it later
-            // Only log if it's not an RLS/permission error
-            if (!profileError.message.includes("permission") && !profileError.message.includes("RLS")) {
+            // Check for conflict 409 or duplicate key value violates unique constraint
+            const isConflict = profileError.code === '23505' || profileError.message.includes('409');
+
+            if (isConflict) {
+              console.log("Profile already exists, skipping creation.");
+            } else if (!profileError.message.includes("permission") && !profileError.message.includes("RLS")) {
+              // If profile creation fails due to RLS (no session), that's okay
+              // The database trigger or AuthProvider will create it later
+              // Only log if it's not an RLS/permission error
               console.error("Failed to create profile:", profileError);
             }
           }
