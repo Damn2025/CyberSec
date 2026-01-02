@@ -9,13 +9,12 @@ import DetailedFeatures from "@/react-app/landing/components/DetailedFeatures";
 import ScannerRoadmap from "@/react-app/landing/components/ScannerRoadmap";
 import AboutSection from "@/react-app/landing/components/AboutSection";
 import Testimonials from "@/react-app/landing/components/Testimonials";
-import ThreatAnalyzer from "@/react-app/landing/components/ThreatAnalyzer";
 import Pricing from "@/react-app/landing/components/Pricing";
 import ContactUs from "@/react-app/landing/components/ContactUs";
 import Footer from "@/react-app/landing/components/Footer";
 import LoginModal from "@/react-app/landing/components/LoginModal";
 import SignupModal from "@/react-app/landing/components/SignupModal";
-import ChatWidget from "@/react-app/landing/components/ChatWidget";
+
 import FloatingActions from "@/react-app/landing/components/FloatingActions";
 import { useAuth } from "@/react-app/auth/AuthProvider";
 
@@ -56,7 +55,6 @@ export default function LandingPage() {
       <AboutSection />
       <TrustedBy />
       <Features />
-      <ThreatAnalyzer />
       <DetailedFeatures />
       <Testimonials />
       <ScannerRoadmap onOpenSignup={handleOpenSignup} />
@@ -79,7 +77,7 @@ export default function LandingPage() {
       />
 
       <FloatingActions />
-      <ChatWidget />
+    
     </div>
   );
 }

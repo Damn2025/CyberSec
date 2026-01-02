@@ -31,13 +31,13 @@ const TrustedBy = () => {
   ];
 
   return (
-    <section className="py-16 bg-[#0A0A0A] border-t border-b border-gray-900/50">
+    <section className="py-16 bg-black  ">
       <div className="container mx-auto px-6">
         <div className="text-center max-w-3xl mx-auto animate-on-scroll fade-in-up mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
             Powering <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-800">Businesses </span>Across Industries
           </h2>
-          <p className="text-base sm:text-lg text-gray-400">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400">
             Trusted by visionary organizations for 24/7 intelligence
           </p>
         </div>
@@ -50,7 +50,7 @@ const TrustedBy = () => {
                 className="marquee-item flex flex-col items-center justify-center gap-3 group min-w-[120px]"
               >
                 {/* Logo */}
-                <div className="relative w-16 h-20 md:w-20 md:h-20 flex items-center justify-center transition-all duration-300 group-hover:scale-125 bg-white rounded-lg p-2 md:p-3 group-hover:bg-gray-100 shadow-md group-hover:shadow-lg">
+                <div className="relative w-16 h-20 md:w-20 md:h-20 flex items-center justify-center transition-all duration-300 group-hover:scale-125 bg-white dark:bg-white rounded-lg p-2 md:p-3 group-hover:bg-gray-100 dark:group-hover:bg-gray-100 shadow-md group-hover:shadow-lg">
                   <img
                     src={company.logo}
                     alt={company.name}
@@ -58,7 +58,7 @@ const TrustedBy = () => {
                   />
                 </div>
                 {/* Company Name */}
-                <div className="text-gray-400 text-sm md:text-base font-semibold text-center whitespace-nowrap group-hover:text-gray-300 transition-colors duration-300">
+                <div className="text-gray-700 dark:text-gray-400 text-sm md:text-base font-semibold text-center whitespace-nowrap group-hover:text-gray-900 dark:group-hover:text-gray-300 transition-colors duration-300">
                   {
                     company.displayName
                   }

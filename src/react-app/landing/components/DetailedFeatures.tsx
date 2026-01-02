@@ -368,7 +368,7 @@ const DetailedFeatures = () => {
                       <img
                         src={featureGroup.image}
                         alt={featureGroup.title}
-                        className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+                        className="w-full h-full object-contain sm:object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300 transform translate-x-2 md:translate-x-0"
                         loading="lazy"
                       />
                     ) : (

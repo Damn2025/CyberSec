@@ -82,14 +82,14 @@ const ContactUs = () => {
       
 
           {/* Contact Form */}
-          <div className="relative w-1/2">
+          <div className="relative w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl">
             <div className="p-4 md:p-6 lg:p-8 border border-white/10 bg-white/[0.02] rounded-lg relative overflow-hidden group hover:border-red-500/30 transition-all duration-300">
               <div className="absolute top-0 right-0 w-24 h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 bg-red-600/10 blur-[60px] group-hover:bg-red-600/20 transition-all"></div>
               
               <div className="relative z-10">
                 <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5 lg:space-y-6">
                   <div>
-                    <label htmlFor="name" className="block text-xs md:text-sm font-mono text-gray-400 mb-1.5 md:mb-2">
+                    <label htmlFor="name" className="block text-sm md:text-base font-mono text-gray-400 mb-1.5 md:mb-2">
                       Full Name *
                     </label>
                     <input
@@ -99,13 +99,13 @@ const ContactUs = () => {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 md:px-4 py-2 md:py-2.5 lg:py-3 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-xs md:text-sm"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 lg:py-3.5 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-sm md:text-base"
                       placeholder="John Doe"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="email" className="block text-xs md:text-sm font-mono text-gray-400 mb-1.5 md:mb-2">
+                    <label htmlFor="email" className="block text-sm md:text-base font-mono text-gray-400 mb-1.5 md:mb-2">
                       Email Address *
                     </label>
                     <input
@@ -115,13 +115,13 @@ const ContactUs = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 md:px-4 py-2 md:py-2.5 lg:py-3 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-xs md:text-sm"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 lg:py-3.5 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-sm md:text-base"
                       placeholder="john@example.com"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="phone" className="block text-xs md:text-sm font-mono text-gray-400 mb-1.5 md:mb-2">
+                    <label htmlFor="phone" className="block text-sm md:text-base font-mono text-gray-400 mb-1.5 md:mb-2">
                       Phone Number *
                     </label>
                     <input
@@ -131,7 +131,7 @@ const ContactUs = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 md:px-4 py-2 md:py-2.5 lg:py-3 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-xs md:text-sm"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 lg:py-3.5 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-mono text-sm md:text-base"
                       placeholder="+1 234 567 890"
                     />
                   </div>
@@ -139,7 +139,7 @@ const ContactUs = () => {
             
 
                   <div>
-                    <label htmlFor="message" className="block text-xs md:text-sm font-mono text-gray-400 mb-1.5 md:mb-2">
+                    <label htmlFor="message" className="block text-sm md:text-base font-mono text-gray-400 mb-1.5 md:mb-2">
                       Message 
                     </label>
                     <textarea
@@ -149,7 +149,7 @@ const ContactUs = () => {
                       onChange={handleChange}
                     
                       rows={5}
-                      className="w-full px-3 md:px-4 py-2 md:py-2.5 lg:py-3 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all resize-none font-mono text-xs md:text-sm"
+                      className="w-full px-3 md:px-4 py-2.5 md:py-3 lg:py-3.5 bg-black/50 border border-white/10 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all resize-none font-mono text-sm md:text-base"
                       placeholder="Tell us about your security needs..."
                     />
                   </div>
@@ -157,7 +157,7 @@ const ContactUs = () => {
                   {submitStatus === 'success' && (
                     <div className="flex items-center gap-2 p-3 md:p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
                       <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-500" />
-                      <p className="text-green-400 text-xs md:text-sm font-mono">
+                      <p className="text-green-400 text-sm md:text-base font-mono">
                         Message sent successfully! We'll get back to you soon.
                       </p>
                     </div>
@@ -166,7 +166,7 @@ const ContactUs = () => {
                   {submitStatus === 'error' && (
                     <div className="flex items-center gap-2 p-3 md:p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
                       <AlertCircle className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
-                      <p className="text-red-400 text-xs md:text-sm font-mono">
+                      <p className="text-red-400 text-sm md:text-base font-mono">
                         Failed to send message. Please try again.
                       </p>
                     </div>
@@ -175,7 +175,7 @@ const ContactUs = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-2.5 md:py-3 lg:py-4 bg-red-600 hover:bg-red-700 text-white font-bold font-mono rounded-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] text-xs md:text-sm"
+                    className="w-full py-2.5 md:py-3 lg:py-4 bg-red-600 hover:bg-red-700 text-white font-bold font-mono rounded-lg transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)] text-sm md:text-base"
                   >
                     {isSubmitting ? (
                       <>

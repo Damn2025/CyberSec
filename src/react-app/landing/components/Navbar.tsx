@@ -39,7 +39,6 @@ const Navbar = ({ onOpenLogin, onOpenSignup }: NavbarProps) => {
           <a href="#about" className="hover:text-red-500 transition-colors">About</a>
           <a href="#detailed-features" className="hover:text-red-500 transition-colors">Capabilities</a>
           {/* <a href="#scanner" className="hover:text-red-500 transition-colors">Scanner</a> */}
-          <a href="#threat-analyzer" className="hover:text-red-500 transition-colors">Threat Analyser</a>
           <a href="#testimonials" className="hover:text-red-500 transition-colors">Testimonials</a>
           <a href="#pricing" className="hover:text-red-500 transition-colors">Pricing</a>
           <button
