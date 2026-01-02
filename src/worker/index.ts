@@ -27,6 +27,27 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use("/*", cors());
 
+// Global error handler to prevent 502/crashes
+app.onError((err, c) => {
+  console.error("Global App Error:", err);
+  return c.json({
+    error: "Internal Server Error",
+    message: err.message,
+    stack: process.env.NODE_ENV === "development" ? err.stack : undefined
+  }, 500);
+});
+
+// Polyfill helper for executionCtx.waitUntil (missing in Netlify)
+const safeWaitUntil = (c: any, promise: Promise<void>) => {
+  if (c.executionCtx && typeof c.executionCtx.waitUntil === 'function') {
+    c.executionCtx.waitUntil(promise);
+  } else {
+    // In Netlify/Node, we don't have waitUntil.
+    // Ensure we catch errors so unhandled promises don't crash the process
+    promise.catch(err => console.error("Async background task error:", err));
+  }
+};
+
 // Helper to get Supabase client with fallback to process.env
 const getSupabase = (env: Env): SupabaseClient => {
   // Check Hono env (Cloudflare), then process.env (Netlify/Node)
@@ -257,7 +278,7 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
     const scanId = scan.id;
 
     // Run scan asynchronously
-    c.executionCtx.waitUntil(
+    safeWaitUntil(c,
       (async () => {
         // Re-initialize supabase inside async context to be safe
         const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
@@ -888,7 +909,7 @@ app.post("/api/mobile-scans", async (c) => {
     const scanId = scan.id;
 
     // Run scan asynchronously
-    c.executionCtx.waitUntil(
+    safeWaitUntil(c,
       (async () => {
         const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
         const supabaseKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
