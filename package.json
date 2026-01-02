@@ -6,6 +6,7 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@hono/zod-validator": "^0.5.0",
+    "@netlify/functions": "^5.1.2",
     "@supabase/supabase-js": "^2.84.0",
     "@types/plist": "^3.0.5",
     "@types/xml2js": "^0.4.14",

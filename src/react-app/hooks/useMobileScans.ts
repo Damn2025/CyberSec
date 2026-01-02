@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MobileScan, MobileVulnerability } from '@/shared/types';
 import { supabase } from '@/react-app/lib/supabase';
+import { getApiUrl } from '@/react-app/lib/api';
 
 export function useMobileScans() {
   const [scans, setScans] = useState<MobileScan[]>([]);
@@ -15,9 +16,16 @@ export function useMobileScans() {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
-      const response = await fetch('/api/mobile-scans', { headers });
-      const data = await response.json();
-      setScans(data);
+      const response = await fetch(getApiUrl('/api/mobile-scans'), { headers });
+
+      // Check for JSON content type
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        setScans(data);
+      } else {
+        throw new Error("Received non-JSON response from API");
+      }
     } catch (error) {
       console.error('Failed to fetch mobile scans:', error);
     } finally {
@@ -52,12 +60,21 @@ export function useMobileScan(id: string | undefined) {
         }
 
         const [scanRes, vulnRes] = await Promise.all([
-          fetch(`/api/mobile-scans/${id}`, { headers }),
-          fetch(`/api/mobile-scans/${id}/vulnerabilities`, { headers }),
+          fetch(getApiUrl(`/api/mobile-scans/${id}`), { headers }),
+          fetch(getApiUrl(`/api/mobile-scans/${id}/vulnerabilities`), { headers }),
         ]);
 
-        const scanData = await scanRes.json();
-        const vulnData = await vulnRes.json();
+        // Helper to safely parse JSON
+        const safeJson = async (res: Response) => {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            return await res.json();
+          }
+          throw new Error("Received non-JSON response");
+        };
+
+        const scanData = await safeJson(scanRes);
+        const vulnData = await safeJson(vulnRes);
 
         setScan(scanData);
         setVulnerabilities(vulnData);
