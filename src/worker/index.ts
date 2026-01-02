@@ -4,9 +4,9 @@ import { cors } from "hono/cors";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { CreateScanSchema } from "../shared/types";
 import { SecurityScanner, CWETop25Scanner, NISTSP800171Scanner } from "./scanner";
-import { ReportGenerator } from "./report-generator";
 import { MobileSecurityScanner } from "./mobile-scanner";
-import { MobileReportGenerator } from "./mobile-report-generator";
+// import { ReportGenerator } from "./report-generator";
+// import { MobileReportGenerator } from "./mobile-report-generator";
 // import * as wranglerConfig from "../../wrangler.json"; // Removed for Netlify compatibility
 
 // Define the Env interface to include Supabase vars
@@ -693,9 +693,10 @@ app.get("/api/scans/:id/export", async (c) => {
     vulnerabilities: (vulnerabilities || []) as any[],
   };
 
-  const generator = new ReportGenerator(reportData);
-
   try {
+    const { ReportGenerator } = await import("./report-generator");
+    const generator = new ReportGenerator(reportData);
+
     switch (format) {
       case "pdf": {
         const pdfBuffer = generator.generatePDF();
@@ -1049,6 +1050,7 @@ app.get("/api/mobile-scans/:id/export", async (c) => {
     vulnerabilities: (vulnerabilities || []) as any[],
   };
 
+  const { MobileReportGenerator } = await import("./mobile-report-generator");
   const generator = new MobileReportGenerator(reportData);
 
   try {
