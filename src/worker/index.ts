@@ -2,12 +2,12 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { cors } from "hono/cors";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { CreateScanSchema } from "@/shared/types";
+import { CreateScanSchema } from "../shared/types";
 import { SecurityScanner, CWETop25Scanner, NISTSP800171Scanner } from "./scanner";
 import { ReportGenerator } from "./report-generator";
 import { MobileSecurityScanner } from "./mobile-scanner";
 import { MobileReportGenerator } from "./mobile-report-generator";
-import * as wranglerConfig from "../../wrangler.json";
+// import * as wranglerConfig from "../../wrangler.json"; // Removed for Netlify compatibility
 
 // Define the Env interface to include Supabase vars
 type Env = {
@@ -27,14 +27,14 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.use("/*", cors());
 
-// Helper to get Supabase client with fallback to wrangler.json
+// Helper to get Supabase client with fallback to process.env
 const getSupabase = (env: Env): SupabaseClient => {
-  // Check Hono env (Cloudflare), then process.env (Netlify/Node), then wrangler.json
-  const supabaseUrl = env?.SUPABASE_URL || process.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
-  const supabaseKey = env?.SUPABASE_KEY || process.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+  // Check Hono env (Cloudflare), then process.env (Netlify/Node)
+  const supabaseUrl = env?.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+  const supabaseKey = env?.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase URL and Key must be configured. Check wrangler.json or environment variables.");
+    throw new Error("Supabase URL and Key must be configured. Check environment variables.");
   }
 
   return createClient(supabaseUrl, supabaseKey);
@@ -47,9 +47,9 @@ const getUserIdFromRequest = async (c: any): Promise<string | null> => {
 
   try {
     const token = authHeader.replace("Bearer ", "");
-    // Check Hono env, then process.env, then wrangler config
-    const supabaseUrl = c.env.SUPABASE_URL || process.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
-    const supabaseAnonKey = c.env.SUPABASE_KEY || process.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+    // Check Hono env, then process.env
+    const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+    const supabaseAnonKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
 
     if (!supabaseUrl || !supabaseAnonKey) return null;
 
@@ -161,8 +161,8 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
     if (authHeader) {
       try {
         const token = authHeader.replace("Bearer ", "");
-        const supabaseUrl = c.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
-        const supabaseAnonKey = c.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+        const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+        const supabaseAnonKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
 
         if (supabaseUrl && supabaseAnonKey) {
           // Create a Supabase client with anon key and user's token
@@ -260,8 +260,8 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
     c.executionCtx.waitUntil(
       (async () => {
         // Re-initialize supabase inside async context to be safe
-        const supabaseUrl = c.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
-        const supabaseKey = c.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+        const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+        const supabaseKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
         if (!supabaseUrl || !supabaseKey) {
           console.error("Supabase credentials not available");
           return;
@@ -808,8 +808,8 @@ app.post("/api/mobile-scans", async (c) => {
   if (authHeader) {
     try {
       const token = authHeader.replace("Bearer ", "");
-      const supabaseUrl = c.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
-      const supabaseAnonKey = c.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+      const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+      const supabaseAnonKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
 
       if (supabaseUrl && supabaseAnonKey) {
         const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -890,8 +890,8 @@ app.post("/api/mobile-scans", async (c) => {
     // Run scan asynchronously
     c.executionCtx.waitUntil(
       (async () => {
-        const supabaseUrl = c.env.SUPABASE_URL || wranglerConfig.vars?.SUPABASE_URL;
-        const supabaseKey = c.env.SUPABASE_KEY || wranglerConfig.vars?.SUPABASE_KEY;
+        const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+        const supabaseKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
         if (!supabaseUrl || !supabaseKey) {
           console.error("Supabase credentials not available");
           return;
