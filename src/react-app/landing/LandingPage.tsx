@@ -109,8 +109,6 @@ export default function LandingPage() {
         isOpen={isTrialScanOpen}
         onClose={() => setIsTrialScanOpen(false)}
         onScanComplete={handleTrialScanComplete}
-        onOpenLogin={handleOpenLogin}
-        onOpenSignup={handleOpenSignup}
       />
 
       {trialScanResults && (
