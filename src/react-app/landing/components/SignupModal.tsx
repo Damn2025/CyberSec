@@ -2,6 +2,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useState } from 'react';
 import { X, Lock, Mail, Eye, EyeOff, Shield, User, Phone } from 'lucide-react';
 import { supabase } from "@/react-app/lib/supabase";
+import { saveTrialScan } from "@/react-app/utils/saveTrialScan";
 
 type SignupModalProps = {
   isOpen: boolean;
@@ -54,7 +55,7 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin, onAuthenticated }: Sign
       setError('Password must be at least 8 characters');
       return;
     }
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
     setLoading(true);
 
     try {
@@ -129,6 +130,14 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin, onAuthenticated }: Sign
           `Account created! Please check ${formData.email} for a confirmation email, then log in to continue.`,
         );
         return;
+      }
+
+      // Save trial scan if exists (after successful signup with session)
+      try {
+        await saveTrialScan();
+      } catch (err) {
+        console.error('Failed to save trial scan after signup:', err);
+        // Don't block signup if saving trial scan fails
       }
 
       setFormData({

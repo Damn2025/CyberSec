@@ -2,10 +2,11 @@ import { ArrowRight, CheckCircle } from 'lucide-react';
 import ScannerMockup from './ScannerMockup';
 
 type HeroProps = {
-  onOpenSignup: () => void;
+  onOpenSignup?: () => void;
+  onOpenTrialScan?: () => void;
 };
 
-const Hero = ({ onOpenSignup }: HeroProps) => {
+const Hero = ({ onOpenSignup, onOpenTrialScan }: HeroProps) => {
   return (
     <section className="relative min-h-screen pt-20 md:pt-24 lg:pt-32 pb-12 md:pb-16 lg:pb-20 overflow-hidden flex items-center">
       {/* Background Elements */}
@@ -36,7 +37,13 @@ const Hero = ({ onOpenSignup }: HeroProps) => {
             <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
             <span className="text-white font-mono font-bold text-sm md:text-base">Ready to start scanning?</span>
             <button 
-              onClick={onOpenSignup}
+              onClick={() => {
+                if (onOpenTrialScan) {
+                  onOpenTrialScan();
+                } else if (onOpenSignup) {
+                  onOpenSignup();
+                }
+              }}
               className="ml-2 md:ml-4 px-4 md:px-6 py-1.5 md:py-2 bg-red-600 hover:bg-red-700 text-white font-mono text-xs md:text-sm rounded-lg transition-all duration-300 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)]">
               Get Started
             </button>

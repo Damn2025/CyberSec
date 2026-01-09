@@ -29,7 +29,7 @@ const Navbar = ({ onOpenLogin, onOpenSignup }: NavbarProps) => {
               CYBER<span className="text-red-600">SEC</span>
             </div>
             <div className="text-[10px] sm:text-xs font-mono tracking-[0.25em] uppercase text-gray-300">
-              EVOKE AI DIVISION
+              DIVISION OF <span className='text-cyan-500 font-semibold'>EVOKE AI</span>
             </div>
           </div>
         </div>
@@ -50,6 +50,7 @@ const Navbar = ({ onOpenLogin, onOpenSignup }: NavbarProps) => {
           >
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
+     
           <button 
             onClick={onOpenLogin}
             className="border border-red-600 text-red-500 px-6 py-2 hover:bg-red-600 hover:text-black transition-all duration-300 shadow-[0_0_10px_rgba(220,38,38,0.3)] hover:shadow-[0_0_20px_rgba(220,38,38,0.6)]"
@@ -62,12 +63,23 @@ const Navbar = ({ onOpenLogin, onOpenSignup }: NavbarProps) => {
           >
             Sign Up
           </button>
+
+          <a 
+            href="#contact"
+            className="border border-red-500 text-red-400 px-6 py-2 hover:bg-red-500 hover:text-black transition-all duration-300 shadow-[0_0_10px_rgba(6,182,212,0.3)] hover:shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+          >
+            Get in Touch
+          </a>
         </div>
+
+       
 
         {/* Mobile Toggle */}
         <button className="md:hidden text-white" onClick={() => setIsOpen(!isOpen)}>
           {isOpen ? <X /> : <Menu />}
         </button>
+         
+
       </div>
 
       {/* Mobile Menu */}
@@ -78,7 +90,13 @@ const Navbar = ({ onOpenLogin, onOpenSignup }: NavbarProps) => {
           <a href="#roadmap" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-red-500">Roadmap</a>
           <a href="#testimonials" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-red-500">Testimonials</a>
           <a href="#pricing" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-red-500">Pricing</a>
-          <a href="#contact" onClick={() => setIsOpen(false)} className="text-gray-300 hover:text-red-500">Contact Us</a>
+          <a 
+            href="#contact" 
+            onClick={() => setIsOpen(false)} 
+            className="border border-cyan-500 text-cyan-400 px-6 py-2 hover:bg-cyan-500 hover:text-black transition-all duration-300"
+          >
+            Get in Touch
+          </a>
           <button
             type="button"
             onClick={() => {

@@ -1,10 +1,11 @@
 import { Play, Zap, Eye, Download, CheckCircle, ArrowRight } from 'lucide-react';
 
 type ScannerRoadmapProps = {
-  onOpenSignup: () => void;
+  onOpenSignup?: () => void;
+  onOpenTrialScan?: () => void;
 };
 
-const ScannerRoadmap = ({ onOpenSignup }: ScannerRoadmapProps) => {
+const ScannerRoadmap = ({ onOpenSignup, onOpenTrialScan }: ScannerRoadmapProps) => {
   const steps = [
     {
       id: 1,
@@ -158,7 +159,13 @@ const ScannerRoadmap = ({ onOpenSignup }: ScannerRoadmapProps) => {
             <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
             <span className="text-white font-mono font-bold text-sm md:text-base">Ready to start scanning?</span>
             <button 
-              onClick={onOpenSignup}
+              onClick={() => {
+                if (onOpenTrialScan) {
+                  onOpenTrialScan();
+                } else if (onOpenSignup) {
+                  onOpenSignup();
+                }
+              }}
               className="ml-2 md:ml-4 px-4 md:px-6 py-1.5 md:py-2 bg-red-600 hover:bg-red-700 text-white font-mono text-xs md:text-sm rounded-lg transition-all duration-300 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)]"
             >
               Get Started

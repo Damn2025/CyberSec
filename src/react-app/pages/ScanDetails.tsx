@@ -6,6 +6,7 @@ import CWETop25Card from '@/react-app/components/CWETop25Card';
 import SeverityBadge from '@/react-app/components/SeverityBadge';
 import ExportReportButton from '@/react-app/components/ExportReportButton';
 import { useState } from 'react';
+import { getApiUrl } from '@/react-app/lib/api';
 
 export default function ScanDetails() {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +19,7 @@ export default function ScanDetails() {
     
     setDeleting(true);
     try {
-      const response = await fetch(`/api/scans/${id}`, { method: 'DELETE' });
+      const response = await fetch(getApiUrl(`/api/scans/${id}`), { method: 'DELETE' });
       if (response.ok) {
         navigate('/');
       }

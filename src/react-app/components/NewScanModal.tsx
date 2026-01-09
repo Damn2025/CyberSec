@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Target, Loader2 } from 'lucide-react';
 import { CreateScan, ScanType } from '@/shared/types';
 import { supabase } from '@/react-app/lib/supabase';
+import { getApiUrl } from '@/react-app/lib/api';
 
 interface NewScanModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ export default function NewScanModal({ isOpen, onClose, onSuccess }: NewScanModa
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
-      const response = await fetch('/api/scans', {
+      const response = await fetch(getApiUrl('/api/scans'), {
         method: 'POST',
         headers,
         body: JSON.stringify(data),

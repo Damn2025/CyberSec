@@ -5,6 +5,7 @@ import VulnerabilityCard from '@/react-app/components/VulnerabilityCard';
 import SeverityBadge from '@/react-app/components/SeverityBadge';
 import ExportReportButton from '@/react-app/components/ExportReportButton';
 import { useState } from 'react';
+import { getApiUrl } from '@/react-app/lib/api';
 
 export default function MobileScanDetails() {
   const { id } = useParams<{ id: string }>();
@@ -17,7 +18,7 @@ export default function MobileScanDetails() {
     
     setDeleting(true);
     try {
-      const response = await fetch(`/api/mobile-scans/${id}`, { method: 'DELETE' });
+      const response = await fetch(getApiUrl(`/api/mobile-scans/${id}`), { method: 'DELETE' });
       if (response.ok) {
         navigate('/');
       }

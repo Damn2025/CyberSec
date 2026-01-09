@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { useState } from 'react';
 import { X, Lock, Mail, Eye, EyeOff, Shield, Phone } from 'lucide-react';
 import { supabase } from "@/react-app/lib/supabase";
+import { saveTrialScan } from "@/react-app/utils/saveTrialScan";
 
 type LoginModalProps = {
   isOpen: boolean;
@@ -43,6 +44,14 @@ const LoginModal = ({ isOpen, onClose, onSwitchToSignup, onAuthenticated }: Logi
       if (signInError) {
         setError(signInError.message);
         return;
+      }
+
+      // Save trial scan if exists (after successful login)
+      try {
+        await saveTrialScan();
+      } catch (err) {
+        console.error('Failed to save trial scan after login:', err);
+        // Don't block login if saving trial scan fails
       }
 
       setEmail('');

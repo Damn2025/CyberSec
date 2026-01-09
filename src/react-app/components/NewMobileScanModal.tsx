@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Smartphone, Upload, Loader2 } from 'lucide-react';
 import { MobilePlatform } from '@/shared/types';
 import { supabase } from '@/react-app/lib/supabase';
+import { getApiUrl } from '@/react-app/lib/api';
 
 interface NewMobileScanModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export default function NewMobileScanModal({ isOpen, onClose, onSuccess }: NewMo
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
-      const response = await fetch('/api/mobile-scans', {
+      const response = await fetch(getApiUrl('/api/mobile-scans'), {
         method: 'POST',
         headers,
         body: formData,

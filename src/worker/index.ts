@@ -524,6 +524,391 @@ app.post("/api/scans", zValidator("json", CreateScanSchema), async (c) => {
   }
 });
 
+// Trial scan endpoint - performs scan without storing data
+app.post("/api/scans/trial", zValidator("json", CreateScanSchema), async (c) => {
+  try {
+    const data = c.req.valid("json");
+
+    // Run all scanners in parallel (same as regular scan but don't save to DB)
+    const [standardVulns, cweTop25Results, nistResults] = await Promise.all([
+      // Standard Security Scanner
+      (async () => {
+        const scanner = new SecurityScanner({
+          targetUrl: data.target_url,
+          scanType: data.scan_type,
+        });
+        return await scanner.scan();
+      })(),
+      // CWE Top 25 Scanner
+      (async () => {
+        try {
+          const cweScanner = new CWETop25Scanner({
+            targetUrl: data.target_url,
+          });
+          return await cweScanner.scan();
+        } catch (error) {
+          console.warn("CWE Top 25 scanner failed:", error);
+          return [];
+        }
+      })(),
+      // NIST SP 800-171 Compliance Scanner
+      (async () => {
+        try {
+          const nistScanner = new NISTSP800171Scanner({
+            targetUrl: data.target_url,
+          });
+          return await nistScanner.scan();
+        } catch (error) {
+          console.warn("NIST SP 800-171 scanner failed:", error);
+          return [];
+        }
+      })(),
+    ]);
+
+    // Convert CWE Top 25 results to VulnerabilityResult format
+    const cweVulns = cweTop25Results
+      .filter(result => result.detected)
+      .map(result => ({
+        title: `CWE Top 25 #${result.rank}: ${result.name} (${result.cwe_id})`,
+        description: `${result.description}. Impact: ${result.impact}`,
+        severity: result.severity,
+        category: `CWE Top 25 - ${result.cwe_id}`,
+        cvss_score: result.score,
+        cwe_id: result.cwe_id,
+        recommendation: result.recommendation,
+        evidence: result.evidence || `CWE Top 25 vulnerability ${result.cwe_id} detected.`,
+        scannerType: 'CWE',
+      }));
+
+    // Convert NIST SP 800-171 results to VulnerabilityResult format
+    const nistVulns = nistResults
+      .filter(result => !result.compliant)
+      .map(result => ({
+        title: `${result.title} (${result.control_id}) - Non-Compliant`,
+        description: `${result.description}. Compliance: ${result.requirements_met}/${result.requirements_total} requirements met.`,
+        severity: result.severity,
+        category: `NIST SP 800-171 - ${result.category}`,
+        cvss_score: result.severity === 'critical' ? 9.0 : result.severity === 'high' ? 7.0 : result.severity === 'medium' ? 5.0 : 3.0,
+        cwe_id: null,
+        recommendation: result.recommendation,
+        evidence: result.evidence || `NIST control ${result.control_id} non-compliance detected. ${result.requirements_met}/${result.requirements_total} requirements met.`,
+        scannerType: 'NIST',
+      }));
+
+    // Add scannerType to standard vulnerabilities
+    const standardVulnsWithType = standardVulns.map(vuln => ({
+      ...vuln,
+      scannerType: 'STANDARD' as const,
+    }));
+
+    // Combine all scanner results
+    const allVulnerabilities = [...standardVulnsWithType, ...cweVulns, ...nistVulns];
+
+    // Count vulnerabilities by severity
+    const severityCounts = {
+      critical: allVulnerabilities.filter(v => v.severity === 'critical').length,
+      high: allVulnerabilities.filter(v => v.severity === 'high').length,
+      medium: allVulnerabilities.filter(v => v.severity === 'medium').length,
+      low: allVulnerabilities.filter(v => v.severity === 'low').length,
+      info: allVulnerabilities.filter(v => v.severity === 'info').length,
+    };
+
+    // Return trial scan results without saving to database
+    return c.json({
+      scan: {
+        id: 'trial-' + Date.now(),
+        target_url: data.target_url,
+        scan_type: data.scan_type,
+        status: 'completed',
+        severity_critical: severityCounts.critical,
+        severity_high: severityCounts.high,
+        severity_medium: severityCounts.medium,
+        severity_low: severityCounts.low,
+        severity_info: severityCounts.info,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      },
+      vulnerabilities: allVulnerabilities.map((v, idx) => ({
+        id: idx + 1,
+        ...v,
+      })),
+    });
+  } catch (error) {
+    console.error("Trial scan error:", error);
+    return c.json({
+      error: "Failed to perform trial scan",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Trial mobile scan endpoint - performs scan without storing data
+app.post("/api/mobile-scans/trial", async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get("file") as File | null;
+    const platform = formData.get("platform") as string;
+
+    if (!file) return c.json({ error: "No file provided" }, 400);
+    if (!platform || (platform !== "android" && platform !== "ios")) {
+      return c.json({ error: "Invalid platform. Must be 'android' or 'ios'" }, 400);
+    }
+
+    // Validate file type
+    const fileName = file.name.toLowerCase();
+    const isValidAndroid = platform === "android" && fileName.endsWith(".apk");
+    const isValidIOS = platform === "ios" && (fileName.endsWith(".ipa") || fileName.endsWith(".zip"));
+
+    if (!isValidAndroid && !isValidIOS) {
+      return c.json({
+        error: `Invalid file type for ${platform}. Expected ${platform === "android" ? ".apk" : ".ipa or .zip"}`
+      }, 400);
+    }
+
+    // Perform mobile scan without storing
+    const fileBuffer = await file.arrayBuffer();
+    const scanner = new MobileSecurityScanner({
+      fileBuffer: fileBuffer,
+      fileName: file.name,
+      platform: platform as 'android' | 'ios',
+    });
+
+    const scanResult = await scanner.scan();
+    const vulnerabilities = scanResult.vulnerabilities;
+
+    // Count vulnerabilities by severity
+    const severityCounts = {
+      critical: vulnerabilities.filter(v => v.severity === 'critical').length,
+      high: vulnerabilities.filter(v => v.severity === 'high').length,
+      medium: vulnerabilities.filter(v => v.severity === 'medium').length,
+      low: vulnerabilities.filter(v => v.severity === 'low').length,
+      info: vulnerabilities.filter(v => v.severity === 'info').length,
+    };
+
+    // Return trial scan results without saving to database
+    return c.json({
+      scan: {
+        id: 'trial-mobile-' + Date.now(),
+        app_name: file.name,
+        platform: platform,
+        status: 'completed',
+        severity_critical: severityCounts.critical,
+        severity_high: severityCounts.high,
+        severity_medium: severityCounts.medium,
+        severity_low: severityCounts.low,
+        severity_info: severityCounts.info,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      },
+      vulnerabilities: vulnerabilities.map((v, idx) => ({
+        id: idx + 1,
+        ...v,
+      })),
+    });
+  } catch (error) {
+    console.error("Trial mobile scan error:", error);
+    return c.json({
+      error: "Failed to perform trial mobile scan",
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
+  }
+});
+
+// Save trial web scan to database
+app.post("/api/scans/save-trial", async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { scan, vulnerabilities } = body;
+
+    // Extract user_id from auth token
+    let userId: string | null = null;
+    const authHeader = c.req.header("Authorization");
+    if (authHeader) {
+      try {
+        const token = authHeader.replace("Bearer ", "");
+        const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+        const supabaseAnonKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
+
+        if (supabaseUrl && supabaseAnonKey) {
+          const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+            global: {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          });
+          const { data: { user }, error: userError } = await userClient.auth.getUser(token);
+          if (!userError && user) {
+            userId = user.id;
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to extract user from token:", err);
+      }
+    }
+
+    if (!userId) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    // Create scan record
+    const insertData: any = {
+      target_url: scan.target_url,
+      scan_type: scan.scan_type || 'standard',
+      status: 'completed',
+      severity_critical: scan.severity_critical || 0,
+      severity_high: scan.severity_high || 0,
+      severity_medium: scan.severity_medium || 0,
+      severity_low: scan.severity_low || 0,
+      severity_info: scan.severity_info || 0,
+      started_at: scan.started_at || new Date().toISOString(),
+      completed_at: scan.completed_at || new Date().toISOString(),
+      user_id: userId,
+    };
+
+    const { data: savedScan, error: scanError } = await supabase
+      .from("scans")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (scanError || !savedScan) {
+      console.error("Error saving trial scan:", scanError);
+      return c.json({ error: "Failed to save scan" }, 500);
+    }
+
+    // Save vulnerabilities
+    if (vulnerabilities && vulnerabilities.length > 0) {
+      const vulnsToInsert = vulnerabilities.map((vuln: any) => ({
+        scan_id: savedScan.id,
+        title: sanitizeText(vuln.title) || "Unknown",
+        description: sanitizeText(vuln.description) || "No description",
+        severity: vuln.severity || "info",
+        category: vuln.category || "Uncategorized",
+        cvss_score: vuln.cvss_score || null,
+        cwe_id: sanitizeText(vuln.cwe_id) || null,
+        recommendation: sanitizeText(vuln.recommendation) || "No recommendation",
+        evidence: sanitizeText(vuln.evidence) || null,
+        user_id: userId,
+      }));
+
+      const { error: vulnError } = await supabase
+        .from("web_vulnerabilities")
+        .insert(vulnsToInsert);
+
+      if (vulnError) {
+        console.error("Error saving vulnerabilities:", vulnError);
+        // Still return success for scan, vulnerabilities can be added later
+      }
+    }
+
+    return c.json({ success: true, scan: savedScan });
+  } catch (error) {
+    console.error("Error saving trial scan:", error);
+    return c.json({ error: "Failed to save trial scan" }, 500);
+  }
+});
+
+// Save trial mobile scan to database
+app.post("/api/mobile-scans/save-trial", async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { scan, vulnerabilities } = body;
+
+    // Extract user_id from auth token
+    let userId: string | null = null;
+    const authHeader = c.req.header("Authorization");
+    if (authHeader) {
+      try {
+        const token = authHeader.replace("Bearer ", "");
+        const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+        const supabaseAnonKey = c.env.SUPABASE_KEY || (typeof process !== "undefined" ? process.env?.SUPABASE_KEY : undefined);
+
+        if (supabaseUrl && supabaseAnonKey) {
+          const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+            global: {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          });
+          const { data: { user }, error: userError } = await userClient.auth.getUser(token);
+          if (!userError && user) {
+            userId = user.id;
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to extract user from token:", err);
+      }
+    }
+
+    if (!userId) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    // Create mobile scan record
+    const insertData: any = {
+      app_name: scan.app_name || "Unknown App",
+      platform: scan.platform || "android",
+      status: 'completed',
+      severity_critical: scan.severity_critical || 0,
+      severity_high: scan.severity_high || 0,
+      severity_medium: scan.severity_medium || 0,
+      severity_low: scan.severity_low || 0,
+      severity_info: scan.severity_info || 0,
+      started_at: scan.started_at || new Date().toISOString(),
+      completed_at: scan.completed_at || new Date().toISOString(),
+      user_id: userId,
+      // Note: file_key and file_size won't be available for trial scans
+      file_key: null,
+      file_size: 0,
+    };
+
+    const { data: savedScan, error: scanError } = await supabase
+      .from("mobile_scans")
+      .insert(insertData)
+      .select()
+      .single();
+
+    if (scanError || !savedScan) {
+      console.error("Error saving trial mobile scan:", scanError);
+      return c.json({ error: "Failed to save mobile scan" }, 500);
+    }
+
+    // Save vulnerabilities
+    if (vulnerabilities && vulnerabilities.length > 0) {
+      const vulnsToInsert = vulnerabilities.map((vuln: any) => ({
+        mobile_scan_id: savedScan.id,
+        title: sanitizeText(vuln.title) || "Unknown",
+        description: sanitizeText(vuln.description) || "No description",
+        severity: vuln.severity || "info",
+        owasp_category: sanitizeText(vuln.owasp_category) || "Uncategorized",
+        cvss_score: vuln.cvss_score || null,
+        cwe_id: sanitizeText(vuln.cwe_id) || null,
+        recommendation: sanitizeText(vuln.recommendation) || "No recommendation",
+        evidence: sanitizeText(vuln.evidence) || null,
+        file_path: sanitizeText(vuln.file_path) || null,
+        code_snippet: sanitizeText(vuln.code_snippet) || null,
+      }));
+
+      const { error: vulnError } = await supabase
+        .from("mobile_vulnerabilities")
+        .insert(vulnsToInsert);
+
+      if (vulnError) {
+        console.error("Error saving mobile vulnerabilities:", vulnError);
+      }
+    }
+
+    return c.json({ success: true, scan: savedScan });
+  } catch (error) {
+    console.error("Error saving trial mobile scan:", error);
+    return c.json({ error: "Failed to save trial mobile scan" }, 500);
+  }
+});
+
 // Delete a scan
 app.delete("/api/scans/:id", async (c) => {
   const supabase = getSupabase(c.env);
