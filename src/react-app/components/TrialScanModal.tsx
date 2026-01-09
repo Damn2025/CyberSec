@@ -7,16 +7,13 @@ interface TrialScanModalProps {
   isOpen: boolean;
   onClose: () => void;
   onScanComplete: (scanType: 'web' | 'mobile', data: any) => void;
-  onOpenLogin: () => void;
-  onOpenSignup: () => void;
+
 }
 
 export default function TrialScanModal({ 
   isOpen, 
   onClose, 
-  onScanComplete,
-  onOpenLogin,
-  onOpenSignup 
+  onScanComplete
 }: TrialScanModalProps) {
   const [selectedType, setSelectedType] = useState<'web' | 'mobile' | null>(null);
   const [targetUrl, setTargetUrl] = useState('');
