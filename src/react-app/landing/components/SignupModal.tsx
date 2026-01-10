@@ -60,10 +60,9 @@ const SignupModal = ({ isOpen, onClose, onSwitchToLogin, onAuthenticated }: Sign
 
     try {
       const emailRedirectTo =
-        typeof window !== "undefined"
-          ? `${window.location.origin}${window.location.hostname === "evoke.ai" ? "" : "/cyber"
-          }/dashboard`
-          : undefined;
+       typeof window !== "undefined"
+  ? "/dashboard"
+  : undefined;
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
