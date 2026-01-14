@@ -87,7 +87,7 @@ export default function LandingPage() {
       <DetailedFeatures />
       <Testimonials />
       <ScannerRoadmap onOpenTrialScan={() => setIsTrialScanOpen(true)} />
-      <Pricing onOpenSignup={handleOpenSignup} />
+      <Pricing onOpenTrialScan={() => setIsTrialScanOpen(true)} />
       <Advertisements />
       <ContactUs />
       <Footer />

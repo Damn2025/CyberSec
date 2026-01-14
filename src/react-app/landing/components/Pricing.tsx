@@ -1,10 +1,10 @@
-import { CheckCircle, Gift } from 'lucide-react';
+import { CheckCircle, Gift, ArrowRight } from 'lucide-react';
 
 type PricingProps = {
-   onOpenSignup?: () => void;
+   onOpenTrialScan?: () => void;
 };
 
-const Pricing = ({ onOpenSignup }: PricingProps) => {
+const Pricing = ({ onOpenTrialScan }: PricingProps) => {
    return (
       <section id="pricing" className="py-12 md:py-20 lg:py-32 bg-black relative">
          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-red-900 to-transparent"></div>
@@ -64,7 +64,7 @@ const Pricing = ({ onOpenSignup }: PricingProps) => {
                      </div>
 
                      <button
-                        onClick={onOpenSignup}
+                        onClick={onOpenTrialScan}
                         className="w-full max-w-xs mx-auto py-4 md:py-5 bg-red-600 text-white font-bold font-mono text-base md:text-lg rounded-lg shadow-[0_0_30px_rgba(220,38,38,0.55)] transition-all duration-300 hover:bg-red-700 hover:shadow-[0_0_45px_rgba(220,38,38,0.9)] hover:scale-110 hover:-translate-y-0.5"
                      >
                         Start Free Trial Now
@@ -74,6 +74,20 @@ const Pricing = ({ onOpenSignup }: PricingProps) => {
                         Full platform access for 30 days. You decide what happens next.
                      </p>
                   </div>
+               </div>
+            </div>
+
+            {/* CTA Section */}
+            <div className="mt-12 md:mt-16 lg:mt-20 text-center">
+               <div className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 px-4 md:px-6 lg:px-8 py-3 md:py-4 bg-red-600/10 border border-red-500/30 rounded-lg">
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
+                  <span className="text-white font-mono font-bold text-sm md:text-base">Ready to start scanning?</span>
+                  <button 
+                     onClick={onOpenTrialScan}
+                     className="ml-2 md:ml-4 px-4 md:px-6 py-1.5 md:py-2 bg-red-600 hover:bg-red-700 text-white font-mono text-xs md:text-sm rounded-lg transition-all duration-300 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_30px_rgba(220,38,38,0.5)]"
+                  >
+                     Get Started
+                  </button>
                </div>
             </div>
          </div>

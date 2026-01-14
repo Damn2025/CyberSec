@@ -28,8 +28,8 @@ const Navbar = ({ onOpenLogin, onOpenSignup }: NavbarProps) => {
             <div className="text-2xl font-bold tracking-tight text-shadow-glow">
               CYBER<span className="text-red-600">SEC</span>
             </div>
-            <div className="text-[10px] sm:text-xs font-mono tracking-[0.25em] uppercase text-gray-300">
-              DIVISION OF <span className='text-cyan-500 font-semibold'>EVOKE AI</span>
+            <div className="text-[10px] sm:text-xs font-mono tracking-[0.25em] uppercase text-gray-300 ml-1">
+              A DIVISION OF <span className='text-cyan-500 font-semibold'>EVOKE AI</span>
             </div>
           </div>
         </div>
