@@ -13,7 +13,6 @@ import { MobileSecurityScanner } from "./mobile-scanner";
 type Env = {
   SUPABASE_URL?: string;
   SUPABASE_KEY?: string;
-  R2_BUCKET?: R2Bucket;
 };
 
 // Some mobile scan fields (e.g., evidence, code snippets) can contain null bytes,
@@ -21,6 +20,15 @@ type Env = {
 const sanitizeText = (value: string | null | undefined): string | null => {
   if (!value) return null;
   return value.replace(/\u0000/g, "");
+};
+
+// Maximum allowed upload size for mobile scans (in bytes)
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB — adjust as needed
+
+// Sanitize filename before storing in file_key (keep it safe and limited)
+const sanitizeFileName = (name: string): string => {
+  // keep letters, numbers, dot, underscore, dash; replace others with underscore; limit length
+  return name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 255);
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -1248,29 +1256,19 @@ app.post("/api/mobile-scans", async (c) => {
   }
 
   try {
-    // Store file in R2
-    const fileBuffer = await file.arrayBuffer();
-    const fileKey = `mobile-apps/${Date.now()}-${file.name}`;
-
-    if (!c.env.R2_BUCKET) {
-      return c.json({ error: "R2 bucket not configured" }, 500);
+    // Read file into memory for scanning (no persistent storage)
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return c.json({ error: `File too large. Max allowed is ${MAX_UPLOAD_BYTES} bytes.` }, 400);
     }
 
-    await c.env.R2_BUCKET.put(fileKey, fileBuffer, {
-      httpMetadata: {
-        contentType: file.type || "application/octet-stream",
-      },
-      customMetadata: {
-        originalName: file.name,
-        platform: platform,
-      },
-    });
+    const fileBuffer = await file.arrayBuffer();
+    const safeFileName = sanitizeFileName(file.name);
 
-    // Create initial scan record
+    // Create initial scan record — store sanitized filename in file_key (varchar)
     const insertData: any = {
       app_name: file.name,
       platform: platform,
-      file_key: fileKey,
+      file_key: safeFileName, // store filename here as requested (no blob storage)
       file_size: file.size,
       status: "running",
       started_at: new Date().toISOString()
@@ -1294,7 +1292,7 @@ app.post("/api/mobile-scans", async (c) => {
 
     const scanId = scan.id;
 
-    // Run scan asynchronously
+    // Run scan asynchronously (no R2)
     safeWaitUntil(c,
       (async () => {
         const supabaseUrl = c.env.SUPABASE_URL || (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
@@ -1398,21 +1396,8 @@ app.delete("/api/mobile-scans/:id", async (c) => {
   const supabase = getSupabase(c.env);
   const id = c.req.param("id");
 
-  // Get scan to find file key
-  const { data: scan } = await supabase
-    .from("mobile_scans")
-    .select("file_key")
-    .eq("id", id)
-    .single();
-
-  if (scan?.file_key && c.env.R2_BUCKET) {
-    try {
-      await c.env.R2_BUCKET.delete(scan.file_key);
-    } catch (error) {
-      console.error("Error deleting file from R2:", error);
-    }
-  }
-
+  // Note: file_key now stores sanitized filename only, no persistent object to delete.
+  // Simply remove DB row (CASCADE should clean vulnerabilities).
   const { error } = await supabase.from("mobile_scans").delete().eq("id", id);
 
   if (error) return c.json({ error: error.message }, 500);
