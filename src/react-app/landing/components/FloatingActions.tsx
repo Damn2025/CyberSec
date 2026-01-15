@@ -30,7 +30,7 @@ const FloatingActions = () => {
     });
   };
 
-  const emailHref = `mailto:${CONTACT.email}`;
+  const emailHref = `https://mail.google.com/mail/?view=cm&fs=1&to=vikaskaushalevoke.ai@gmail.com`;
 
   return (
     <div className="fixed bottom-24 right-6 z-[55] flex flex-col gap-3">
