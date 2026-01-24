@@ -41,7 +41,8 @@ export default function NewMobileScanModal({ isOpen, onClose, onSuccess }: NewMo
 
       // Attach Authorization if available; don't set Content-Type for FormData
       const headers = await getAuthHeaders(null);
-      if (!headers['Authorization']) throw new Error('Not authenticated');
+      const headersObj = headers as Record<string, string>;
+      if (!headersObj.Authorization) throw new Error('Not authenticated');
 
       const response = await fetch(getApiUrl('/api/mobile-scans'), {
         method: 'POST',
@@ -64,6 +65,8 @@ export default function NewMobileScanModal({ isOpen, onClose, onSuccess }: NewMo
       setLoading(false);
     }
   };
+
+  const acceptedFormats = platform === 'android' ? '.apk' : '.ipa,.zip';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -104,7 +107,7 @@ export default function NewMobileScanModal({ isOpen, onClose, onSuccess }: NewMo
             <label className="block text-sm font-medium text-gray-300 mb-2">
               File
             </label>
-            <input type="file" accept={platform === 'android' ? '.apk' : '.ipa,.zip'} onChange={handleFileChange} />
+            <input type="file" accept={acceptedFormats} onChange={handleFileChange} />
           </div>
 
           <div className="flex justify-end gap-3">
