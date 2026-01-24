@@ -89,3 +89,37 @@ export function useScan(id: string | undefined) {
 
   return { scan, vulnerabilities, loading, error, refetch: fetchScan };
 }
+
+export function useDashboardStats() {
+  const [stats, setStats] = useState({
+    totalScans: 0,
+    completedScans: 0,
+    runningScans: 0,
+    totalVulnerabilities: 0,
+    criticalVulnerabilities: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetch(getApiUrl('/api/dashboard/stats'), { headers });
+
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const data = await response.json();
+      setStats(data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Fetch stats error:', err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 10000); // Refresh every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  return { stats, loading, refetch: fetchStats };
+}

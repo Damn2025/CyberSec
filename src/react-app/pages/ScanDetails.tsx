@@ -1,9 +1,8 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, CheckCircle, AlertCircle, Clock, Loader2, ExternalLink, Trash2, Award, Shield } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, Clock, Loader2, Trash2 } from 'lucide-react';
 import { useScan } from '@/react-app/hooks/useScans';
 import VulnerabilityCard from '@/react-app/components/VulnerabilityCard';
 import CWETop25Card from '@/react-app/components/CWETop25Card';
-import SeverityBadge from '@/react-app/components/SeverityBadge';
 import ExportReportButton from '@/react-app/components/ExportReportButton';
 import { useState } from 'react';
 import { getApiUrl, getAuthHeaders } from '@/react-app/lib/api';
@@ -76,16 +75,10 @@ export default function ScanDetails() {
     info: scan.severity_info,
   };
 
-  // Determine scanner type for each vulnerability (Standard, CWE_TOP_25, NIST_SP_800_171)
-  const getScannerType = (v: { category?: string | null; title: string }) => {
-    if (v.category?.includes("CWE Top 25") || v.title.includes("CWE Top 25")) {
-      return "CWE_TOP_25" as const;
-    }
-    if (v.category?.includes("NIST") || v.title.includes("NIST")) {
-      return "NIST_SP_800_171" as const;
-    }
-    return "STANDARD" as const;
-  };
+  // Find CWE Top 25 vulnerabilities
+  const cweTop25Vulns = (vulnerabilities || []).filter(
+    (v) => v.category?.includes("CWE Top 25") || v.title.includes("CWE Top 25")
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black p-8">
@@ -149,7 +142,14 @@ export default function ScanDetails() {
               </div>
             </div>
 
-            <CWETop25Card />
+            {cweTop25Vulns.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-gray-300 mb-2">CWE Top 25 Vulnerabilities</h3>
+                {cweTop25Vulns.map((v) => (
+                  <CWETop25Card key={v.id} vulnerability={v} />
+                ))}
+              </div>
+            )}
           </aside>
         </div>
       </div>

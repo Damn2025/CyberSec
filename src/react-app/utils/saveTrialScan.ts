@@ -12,10 +12,13 @@ export async function saveTrialScan(): Promise<boolean> {
 
     // Get auth headers (includes Authorization if session exists)
     const headers = await getAuthHeaders('application/json');
+    const headersObj: Record<string, string> = typeof headers === 'object' && !Array.isArray(headers) && !(headers instanceof Headers) 
+      ? headers as Record<string, string>
+      : {};
 
     // If Authorization is required and missing, we bail out
     // (original behaviour required session.access_token)
-    if (!headers['Authorization']) return false;
+    if (!headersObj.Authorization) return false;
 
     let response: Response;
 

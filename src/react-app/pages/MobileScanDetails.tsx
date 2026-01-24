@@ -1,8 +1,7 @@
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Activity, CheckCircle, AlertCircle, Clock, Loader2, Trash2, Smartphone } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, Clock, Loader2, Trash2 } from 'lucide-react';
 import { useMobileScan } from '@/react-app/hooks/useMobileScans';
 import VulnerabilityCard from '@/react-app/components/VulnerabilityCard';
-import SeverityBadge from '@/react-app/components/SeverityBadge';
 import ExportReportButton from '@/react-app/components/ExportReportButton';
 import { useState } from 'react';
 import { getApiUrl, getAuthHeaders } from '@/react-app/lib/api';

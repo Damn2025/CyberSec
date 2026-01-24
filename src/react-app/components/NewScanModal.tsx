@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Target, Loader2 } from 'lucide-react';
+import { X, Target, Loader2, Globe, Zap, Shield, Code } from 'lucide-react';
 import { CreateScan, ScanType } from '@/shared/types';
 import { getApiUrl, getAuthHeaders } from '@/react-app/lib/api';
 
@@ -29,7 +29,9 @@ export default function NewScanModal({ isOpen, onClose, onSuccess }: NewScanModa
       };
 
       const headers = await getAuthHeaders('application/json');
-      const headersObj = headers as Record<string, string>;
+      const headersObj: Record<string, string> = typeof headers === 'object' && !Array.isArray(headers) && !(headers instanceof Headers) 
+        ? headers as Record<string, string>
+        : {};
       if (!headersObj.Authorization) throw new Error('Not authenticated');
 
       const response = await fetch(getApiUrl('/api/scans'), {
@@ -84,41 +86,90 @@ export default function NewScanModal({ isOpen, onClose, onSuccess }: NewScanModa
               onChange={(e) => setTargetUrl(e.target.value)}
               placeholder="https://example.com"
               required
-              className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white"
+              className="w-full px-4 py-3 rounded-lg bg-gray-900 border border-gray-800 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Scan type
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Select Scanner Type
             </label>
-            <select
-              value={scanType}
-              onChange={(e) => setScanType(e.target.value as ScanType)}
-              className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white"
-            >
-              <option value="quick">Quick</option>
-              <option value="standard">Standard</option>
-              <option value="comprehensive">Comprehensive</option>
-              <option value="api">API</option>
-              <option value="mobile">Mobile</option>
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setScanType('quick')}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${
+                  scanType === 'quick'
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-gray-700'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                <span className="font-medium">Quick</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setScanType('standard')}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${
+                  scanType === 'standard'
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-gray-700'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                <span className="font-medium">Standard</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setScanType('comprehensive')}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${
+                  scanType === 'comprehensive'
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-gray-700'
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                <span className="font-medium">Comprehensive</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setScanType('api')}
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${
+                  scanType === 'api'
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                    : 'bg-gray-900 border-gray-800 text-gray-300 hover:border-gray-700'
+                }`}
+              >
+                <Code className="w-4 h-4" />
+                <span className="font-medium">API</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
             <button
               type="button"
               onClick={() => { onClose(); }}
-              className="px-4 py-2 rounded-lg bg-gray-800 text-white"
+              className="px-6 py-3 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="px-4 py-2 rounded-lg bg-green-600 text-white"
+              disabled={loading || !targetUrl}
+              className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all font-medium shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Scan'}
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <Target className="w-4 h-4" />
+                  <span>Start Scan</span>
+                </>
+              )}
             </button>
           </div>
 
