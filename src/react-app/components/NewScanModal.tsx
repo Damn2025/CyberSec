@@ -29,7 +29,8 @@ export default function NewScanModal({ isOpen, onClose, onSuccess }: NewScanModa
       };
 
       const headers = await getAuthHeaders('application/json');
-      if (!headers['Authorization']) throw new Error('Not authenticated');
+      const headersObj = headers as Record<string, string>;
+      if (!headersObj.Authorization) throw new Error('Not authenticated');
 
       const response = await fetch(getApiUrl('/api/scans'), {
         method: 'POST',
