@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { X, Loader2 } from 'lucide-react';
-import { supabase } from '@/react-app/lib/supabase';
+import { X, Loader2, Smartphone } from 'lucide-react';
 import { getApiUrl, getAuthHeaders } from '@/react-app/lib/api';
 
 type ScanType = 'quick' | 'standard' | 'comprehensive' | 'api' | 'mobile';
@@ -26,9 +25,9 @@ export default function TrialScanModal({ isOpen, onClose, onScanComplete }: Tria
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -56,10 +55,9 @@ export default function TrialScanModal({ isOpen, onClose, onScanComplete }: Tria
 
     try {
       // Simulate scan delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       if (selectedType === 'web') {
-        // Perform web trial scan without storing
         const headers = await getAuthHeaders('application/json');
         const response = await fetch(getApiUrl('/api/scans/trial'), {
           method: 'POST',
@@ -114,7 +112,7 @@ export default function TrialScanModal({ isOpen, onClose, onScanComplete }: Tria
         onScanComplete('web', data);
         setLoading(false);
       } else {
-        // Perform mobile trial scan without storing
+        // Mobile trial
         if (!file) {
           setError('Please select a file');
           setLoading(false);
@@ -125,7 +123,6 @@ export default function TrialScanModal({ isOpen, onClose, onScanComplete }: Tria
         formData.append('file', file);
         formData.append('platform', platform);
 
-        // For FormData we don't set Content-Type; only attach Authorization if available
         const headers = await getAuthHeaders(null);
         const response = await fetch(getApiUrl('/api/mobile-scans/trial'), {
           method: 'POST',
@@ -134,7 +131,6 @@ export default function TrialScanModal({ isOpen, onClose, onScanComplete }: Tria
         });
 
         if (!response.ok) {
-          // If trial endpoint doesn't exist or is auth-protected, simulate results
           const mockResults = {
             scan: {
               id: 'trial-mobile-' + Date.now(),
@@ -174,6 +170,8 @@ export default function TrialScanModal({ isOpen, onClose, onScanComplete }: Tria
     }
   };
 
+  const acceptedFormats = platform === 'android' ? '.apk' : '.ipa,.zip';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div className="relative w-full max-w-lg bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-gray-800 shadow-2xl">
@@ -185,31 +183,72 @@ export default function TrialScanModal({ isOpen, onClose, onScanComplete }: Tria
               </div>
               <h2 className="text-xl font-bold text-white">Trial Scan</h2>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
-            >
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-800 transition-colors">
               <X className="w-5 h-5 text-gray-400" />
             </button>
           </div>
         </div>
 
         <div className="p-6 space-y-4">
-          {/* UI to select web/mobile trial, targetUrl, file upload, etc. */}
-          {/* ... keep the rest of the modal UI as in your original file ... */}
-
-          <div className="flex justify-end gap-3">
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => { onClose(); }}
-              className="px-4 py-2 rounded-lg bg-gray-800 text-white"
+              onClick={() => setSelectedType('web')}
+              className={`px-3 py-2 rounded-lg ${selectedType === 'web' ? 'bg-gray-800' : 'bg-transparent'}`}
             >
-              Cancel
+              Web
             </button>
             <button
-              onClick={performTrialScan}
-              className="px-4 py-2 rounded-lg bg-green-600 text-white"
-              disabled={loading}
+              onClick={() => setSelectedType('mobile')}
+              className={`px-3 py-2 rounded-lg ${selectedType === 'mobile' ? 'bg-gray-800' : 'bg-transparent'}`}
             >
+              Mobile
+            </button>
+          </div>
+
+          {selectedType === 'web' ? (
+            <>
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">Target URL</label>
+                <input type="url" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white" />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">Scan type</label>
+                <select value={scanType} onChange={(e) => setScanType(e.target.value as ScanType)} className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white">
+                  <option value="quick">Quick</option>
+                  <option value="standard">Standard</option>
+                  <option value="comprehensive">Comprehensive</option>
+                  <option value="api">API</option>
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm text-gray-300 mb-2">Platform</label>
+                <select value={platform} onChange={(e) => setPlatform(e.target.value as 'android' | 'ios')} className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white">
+                  <option value="android">Android (APK)</option>
+                  <option value="ios">iOS (IPA/ZIP)</option>
+                </select>
+              </div>
+
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                className={`p-4 border-dashed rounded-lg ${dragActive ? 'border-blue-400' : 'border-gray-700'}`}
+              >
+                <label className="block text-sm text-gray-300 mb-2">File</label>
+                <input type="file" accept={acceptedFormats} onChange={handleFileChange} />
+                <div className="text-xs text-gray-500 mt-2">Or drag and drop your file here.</div>
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-3">
+            <button onClick={() => { onClose(); }} className="px-4 py-2 rounded-lg bg-gray-800 text-white">Cancel</button>
+            <button onClick={performTrialScan} className="px-4 py-2 rounded-lg bg-green-600 text-white" disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Run Trial Scan'}
             </button>
           </div>
