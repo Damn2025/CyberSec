@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { X, Target, Loader2 } from 'lucide-react';
 import { CreateScan, ScanType } from '@/shared/types';
-import { supabase } from '@/react-app/lib/supabase';
-import { getApiUrl } from '@/react-app/lib/api';
+import { getApiUrl, getAuthHeaders } from '@/react-app/lib/api';
 
 interface NewScanModalProps {
   isOpen: boolean;
@@ -29,12 +28,8 @@ export default function NewScanModal({ isOpen, onClose, onSuccess }: NewScanModa
         scan_type: scanType,
       };
 
-      // Get auth token for user_id extraction
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
+      const headers = await getAuthHeaders('application/json');
+      if (!headers['Authorization']) throw new Error('Not authenticated');
 
       const response = await fetch(getApiUrl('/api/scans'), {
         method: 'POST',
@@ -88,68 +83,45 @@ export default function NewScanModal({ isOpen, onClose, onSuccess }: NewScanModa
               onChange={(e) => setTargetUrl(e.target.value)}
               placeholder="https://example.com"
               required
-              className="w-full px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Scan Type
+              Scan type
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              {(['quick', 'standard', 'comprehensive', 'api', 'mobile'] as ScanType[]).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setScanType(type)}
-                  className={`p-4 rounded-lg border text-left transition-all ${
-                    scanType === type
-                      ? 'bg-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/20'
-                      : 'bg-gray-900/50 border-gray-700 hover:border-gray-600'
-                  }`}
-                >
-                  <div className="font-medium text-white capitalize mb-1">{type}</div>
-                  <div className="text-xs text-gray-400">
-                    {type === 'quick' && 'Fast basic checks'}
-                    {type === 'standard' && 'Recommended depth'}
-                    {type === 'comprehensive' && 'Deep analysis'}
-                    {type === 'api' && 'API security scan'}
-                    {type === 'mobile' && 'Mobile app scan'}
-                  </div>
-                </button>
-              ))}
-            </div>
+            <select
+              value={scanType}
+              onChange={(e) => setScanType(e.target.value as ScanType)}
+              className="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-800 text-white"
+            >
+              <option value="quick">Quick</option>
+              <option value="standard">Standard</option>
+              <option value="comprehensive">Comprehensive</option>
+              <option value="api">API</option>
+              <option value="mobile">Mobile</option>
+            </select>
           </div>
 
-          {error && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3">
+          <div className="flex justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-700 text-gray-300 font-medium hover:bg-gray-800 transition-colors"
+              onClick={() => { onClose(); }}
+              className="px-4 py-2 rounded-lg bg-gray-800 text-white"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+              className="px-4 py-2 rounded-lg bg-green-600 text-white"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Starting Scan...
-                </>
-              ) : (
-                'Start Scan'
-              )}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Scan'}
             </button>
           </div>
+
+          {error && <div className="text-red-400 text-sm">{error}</div>}
         </form>
       </div>
     </div>
