@@ -1,5 +1,4 @@
-import { supabase } from '@/react-app/lib/supabase';
-import { getApiUrl } from '@/react-app/lib/api';
+import { getApiUrl, getAuthHeaders } from '@/react-app/lib/api';
 
 export async function saveTrialScan(): Promise<boolean> {
   try {
@@ -10,17 +9,13 @@ export async function saveTrialScan(): Promise<boolean> {
     }
 
     const trialScanData = JSON.parse(pendingTrialScan);
-    
-    // Get current session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
-      return false;
-    }
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-    };
+    // Get auth headers (includes Authorization if session exists)
+    const headers = await getAuthHeaders('application/json');
+
+    // If Authorization is required and missing, we bail out
+    // (original behaviour required session.access_token)
+    if (!headers['Authorization']) return false;
 
     let response: Response;
 
@@ -59,4 +54,3 @@ export async function saveTrialScan(): Promise<boolean> {
     return false;
   }
 }
-
